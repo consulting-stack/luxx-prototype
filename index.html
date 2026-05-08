@@ -13,533 +13,362 @@
 </head>
 <body>
   <div id="root"></div>
-
-  <!-- React + ReactDOM CDN -->
   <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-  <!-- Babel for JSX (browser transform) -->
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-
+  <script src="https://unpkg.com/three@0.160.0/build/three.min.js"></script>
   <script type="text/babel">
     const { useState, useEffect, useRef } = React;
+    const BG="#070707",G="#C9A84C",GL="#EDD98A";
+    const WATCH_IMAGES=["https://res.cloudinary.com/djzwhvq8s/image/upload/v1778131054/kling_20260507_%E4%BD%9C%E5%93%81_Luxury_pro_3300_1_ykilvz.jpg","https://res.cloudinary.com/djzwhvq8s/image/upload/v1778131024/kling_20260507_%E4%BD%9C%E5%93%81_Luxury_pro_3300_0_1_p3t9j7.jpg","https://res.cloudinary.com/djzwhvq8s/image/upload/v1778131060/kling_20260507_%E4%BD%9C%E5%93%81_Luxury_pro_3300_1_1_lssrjs.jpg"];
+    const WATCH_LABELS=["10 : 10","02 : 00","08 : 20"];
+    const WATCH_NAMES=["Rolex Day-Date","AP Royal Oak Gold","AP Royal Oak Dark"];
+    const WATCH_ACCENTS=["#C9A84C","#B8965A","#4A7A9B"];
+    const FEATURED=[{name:"Sovereign Cuban",tag:"BESTSELLER",desc:"18K gold-plated. 6mm. 24 inches.",price:"$349",img:"https://images.unsplash.com/photo-1611652022419-a9419f74343d?w=800&q=90&fit=crop"},{name:"Noir GMT",tag:"NEW ARRIVAL",desc:"All-black case. Gold crown. 42mm.",price:"$529",img:"https://images.unsplash.com/photo-1547996160-81dfa63595aa?w=800&q=90&fit=crop"},{name:"Empire Signet",tag:"LIMITED",desc:"Moissanite pavé. 14K gold fill.",price:"$279",img:"https://images.unsplash.com/photo-1515377905703-c4788e51af15?w=800&q=90&fit=crop"}];
+    const TESTIMONIALS=[{quote:"I've been to Tiffany's. I've been to Luxx. The difference is I can actually afford to come back to Luxx.",name:"Marcus T.",location:"Atlanta, GA"},{quote:"The chain looks like it costs three times what I paid. People stop me everywhere I go.",name:"Alicia R.",location:"Houston, TX"},{quote:"Bought the GMT for my husband's birthday. He thought I spent way more. That's the whole point.",name:"Jordan M.",location:"Chicago, IL"}];
+    const STATS=[{num:500,suffix:"+",label:"Pieces Crafted"},{num:4.9,suffix:"★",label:"Average Rating",decimal:true},{num:10,suffix:"+",label:"Years of Craft"},{num:100,suffix:"%",label:"Satisfaction Guaranteed"}];
 
+    function hexToRgb(h){return{r:parseInt(h.slice(1,3),16),g:parseInt(h.slice(3,5),16),b:parseInt(h.slice(5,7),16)};}
+    function lerpHex(h1,h2,t){const a=hexToRgb(h1),b=hexToRgb(h2);return `rgb(${Math.round(a.r+(b.r-a.r)*t)},${Math.round(a.g+(b.g-a.g)*t)},${Math.round(a.b+(b.b-a.b)*t)})`;}
+    function getAccent(p){const n=WATCH_ACCENTS.length,fi=p*(n-1),i=Math.min(n-2,Math.floor(fi));return lerpHex(WATCH_ACCENTS[i],WATCH_ACCENTS[i+1],fi-i);}
+    function getBgOpacity(i,p){const n=WATCH_IMAGES.length,seg=1/n,start=i*seg,end=(i+1)*seg,fade=seg*0.35;if(i===0&&p<=end-fade)return 1;if(i===0&&p<=end)return 1-(p-(end-fade))/fade;if(i===0)return 0;if(i===n-1&&p>=start)return Math.min(1,(p-start)/fade);if(i===n-1)return 0;if(p<start)return 0;if(p<start+fade)return(p-start)/fade;if(p<=end-fade)return 1;if(p<=end)return 1-(p-(end-fade))/fade;return 0;}
+    function getCurrentWatchIdx(p){return Math.min(WATCH_IMAGES.length-1,Math.floor(p*WATCH_IMAGES.length));}
 
-const BG = "#070707";
-const BG2 = "#0c0c0c";
-const G = "#C9A84C";
-const GL = "#EDD98A";
+    function useBgProgress(){const[p,setP]=useState(0);const raf=useRef(null);useEffect(()=>{const fn=()=>{const max=document.documentElement.scrollHeight-window.innerHeight;setP(max>0?Math.max(0,Math.min(1,window.scrollY/max)):0);};const onScroll=()=>{if(raf.current)cancelAnimationFrame(raf.current);raf.current=requestAnimationFrame(fn);};window.addEventListener("scroll",onScroll,{passive:true});fn();return()=>{window.removeEventListener("scroll",onScroll);if(raf.current)cancelAnimationFrame(raf.current);};},[]);return p;}
+    function useScrollY(){const[y,setY]=useState(0);useEffect(()=>{const fn=()=>setY(window.scrollY);window.addEventListener("scroll",fn,{passive:true});return()=>window.removeEventListener("scroll",fn);},[]);return y;}
+    function useInView(threshold=0.15){const ref=useRef(null);const[inView,setInView]=useState(false);useEffect(()=>{const obs=new IntersectionObserver(([e])=>{if(e.isIntersecting)setInView(true);},{threshold});if(ref.current)obs.observe(ref.current);return()=>obs.disconnect();},[]);return[ref,inView];}
+    function useCounter(target,inView,duration=1800,decimal=false){const[val,setVal]=useState(0);useEffect(()=>{if(!inView)return;const steps=duration/16,inc=target/steps;let cur=0;const t=setInterval(()=>{cur+=inc;if(cur>=target){setVal(target);clearInterval(t);return;}setVal(decimal?Math.round(cur*10)/10:Math.floor(cur));},16);return()=>clearInterval(t);},[inView,target]);return val;}
+    function useBreakpoint(){const[bp,setBp]=useState("desktop");useEffect(()=>{const fn=()=>{const w=window.innerWidth;setBp(w<768?"mobile":w<1024?"tablet":"desktop");};fn();window.addEventListener("resize",fn);return()=>window.removeEventListener("resize",fn);},[]);return bp;}
 
-// ── YOUR KLING RENDERS (embedded) ──────────────────────
-const WATCH_IMAGES = [
-  "https://res.cloudinary.com/djzwhvq8s/image/upload/v1778131054/kling_20260507_%E4%BD%9C%E5%93%81_Luxury_pro_3300_1_ykilvz.jpg",
-  "https://res.cloudinary.com/djzwhvq8s/image/upload/v1778131024/kling_20260507_%E4%BD%9C%E5%93%81_Luxury_pro_3300_0_1_p3t9j7.jpg",
-  "https://res.cloudinary.com/djzwhvq8s/image/upload/v1778131060/kling_20260507_%E4%BD%9C%E5%93%81_Luxury_pro_3300_1_1_lssrjs.jpg",
-];
+    // ── 3D RING ──────────────────────────────────────────
+    function Ring3D({inView}){
+      const mountRef=useRef(null);
+      const sceneRef=useRef(null);
+      useEffect(()=>{
+        if(!inView||!mountRef.current||sceneRef.current)return;
+        const THREE=window.THREE;
+        const container=mountRef.current;
+        const W=container.clientWidth;
+        const H=Math.min(500,window.innerHeight*0.6);
+        const scene=new THREE.Scene();
+        const camera=new THREE.PerspectiveCamera(45,W/H,0.1,100);
+        camera.position.set(0,0.4,5);
+        const renderer=new THREE.WebGLRenderer({antialias:true,alpha:true});
+        renderer.setSize(W,H);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio,2));
+        renderer.toneMapping=THREE.ACESFilmicToneMapping;
+        renderer.toneMappingExposure=1.4;
+        renderer.shadowMap.enabled=true;
+        container.appendChild(renderer.domElement);
+        renderer.domElement.style.borderRadius="2px";
+        // Lights
+        scene.add(new THREE.AmbientLight(0xffffff,0.6));
+        const key=new THREE.SpotLight(0xfff8e7,3,30,Math.PI*0.25,0.5,1);
+        key.position.set(6,8,6);key.castShadow=true;scene.add(key);
+        const fill=new THREE.PointLight(0xC9A84C,2.5,20);
+        fill.position.set(-5,3,4);scene.add(fill);
+        scene.add(Object.assign(new THREE.PointLight(0xffffff,1.5,20),{position:{x:0,y:-4,z:-6}}));
+        scene.add(Object.assign(new THREE.DirectionalLight(0xfff5cc,1.2),{position:{x:0,y:10,z:2}}));
+        // Geometry
+        const group=new THREE.Group();scene.add(group);
+        const goldMat=new THREE.MeshStandardMaterial({color:new THREE.Color(0xC9A84C),metalness:1,roughness:0.08});
+        const ring=new THREE.Mesh(new THREE.TorusGeometry(1,0.175,48,128),goldMat);
+        ring.castShadow=true;group.add(ring);
+        const bezel=new THREE.Mesh(new THREE.CylinderGeometry(0.22,0.18,0.12,32),goldMat);
+        bezel.position.set(0,1,0);group.add(bezel);
+        const diamond=new THREE.Mesh(new THREE.OctahedronGeometry(0.32,0),new THREE.MeshPhysicalMaterial({color:new THREE.Color(0xffffff),metalness:0,roughness:0,transmission:0.95,thickness:0.6,clearcoat:1,clearcoatRoughness:0,ior:2.42,transparent:true,opacity:1}));
+        diamond.position.set(0,1.32,0);diamond.scale.set(0.9,1.2,0.9);diamond.castShadow=true;group.add(diamond);
+        const shadow=new THREE.Mesh(new THREE.PlaneGeometry(8,8),new THREE.ShadowMaterial({opacity:0.25}));
+        shadow.rotation.x=-Math.PI/2;shadow.position.y=-1.6;shadow.receiveShadow=true;scene.add(shadow);
+        // Controls
+        let drag=false,lx=0,ly=0,ry=0,rx=0.18;
+        const md=e=>{drag=true;lx=e.clientX;ly=e.clientY;renderer.domElement.style.cursor="grabbing";};
+        const mm=e=>{if(!drag)return;ry+=(e.clientX-lx)*0.012;rx+=((e.clientY-ly)*0.012);rx=Math.max(-0.9,Math.min(0.9,rx));lx=e.clientX;ly=e.clientY;};
+        const mu=()=>{drag=false;renderer.domElement.style.cursor="grab";};
+        const ts=e=>{if(e.touches.length!==1)return;lx=e.touches[0].clientX;ly=e.touches[0].clientY;drag=true;};
+        const tm=e=>{if(!drag||e.touches.length!==1)return;ry+=(e.touches[0].clientX-lx)*0.012;rx+=((e.touches[0].clientY-ly)*0.012);rx=Math.max(-0.9,Math.min(0.9,rx));lx=e.touches[0].clientX;ly=e.touches[0].clientY;};
+        renderer.domElement.addEventListener("mousedown",md);
+        window.addEventListener("mousemove",mm);
+        window.addEventListener("mouseup",mu);
+        renderer.domElement.addEventListener("touchstart",ts,{passive:true});
+        renderer.domElement.addEventListener("touchmove",tm,{passive:true});
+        renderer.domElement.addEventListener("touchend",()=>{drag=false;});
+        renderer.domElement.style.cursor="grab";
+        const clock=new THREE.Clock();let id;
+        const animate=()=>{
+          id=requestAnimationFrame(animate);
+          const dt=clock.getDelta(),el=clock.getElapsedTime();
+          if(!drag)ry+=dt*0.28;
+          group.rotation.y=ry;group.rotation.x=rx;
+          diamond.rotation.y=el*0.6;
+          group.position.y=Math.sin(el*0.8)*0.06;
+          fill.position.x=Math.sin(el*0.5)*5;fill.position.z=Math.cos(el*0.5)*5;
+          renderer.render(scene,camera);
+        };
+        animate();
+        const onR=()=>{if(!container)return;const w=container.clientWidth,h=Math.min(500,window.innerHeight*0.6);camera.aspect=w/h;camera.updateProjectionMatrix();renderer.setSize(w,h);};
+        window.addEventListener("resize",onR);
+        sceneRef.current={cleanup:()=>{
+          cancelAnimationFrame(id);
+          renderer.domElement.removeEventListener("mousedown",md);
+          window.removeEventListener("mousemove",mm);window.removeEventListener("mouseup",mu);
+          renderer.domElement.removeEventListener("touchstart",ts);renderer.domElement.removeEventListener("touchmove",tm);
+          window.removeEventListener("resize",onR);
+          if(container.contains(renderer.domElement))container.removeChild(renderer.domElement);
+          renderer.dispose();
+        }};
+        return()=>{if(sceneRef.current){sceneRef.current.cleanup();sceneRef.current=null;}};
+      },[inView]);
+      return <div ref={mountRef} style={{width:"100%",height:"500px",position:"relative",overflow:"hidden"}}/>;
+    }
 
-const WATCH_LABELS = ["10 : 10", "02 : 00", "08 : 20"];
-const WATCH_NAMES  = ["Rolex Day-Date", "AP Royal Oak Gold", "AP Royal Oak Dark"];
-const WATCH_ACCENTS = ["#C9A84C", "#B8965A", "#4A7A9B"];
+    // ── UI COMPONENTS ────────────────────────────────────
+    function Loader({onDone}){const[p,setP]=useState(0);useEffect(()=>{const t1=setTimeout(()=>setP(1),300),t2=setTimeout(()=>setP(2),1200),t3=setTimeout(()=>setP(3),2200),t4=setTimeout(()=>onDone(),2800);return()=>[t1,t2,t3,t4].forEach(clearTimeout);},[]);return(<div style={{position:"fixed",inset:0,zIndex:9999,background:BG,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",opacity:p===3?0:1,transition:p===3?"opacity 0.7s ease":"none",pointerEvents:p===3?"none":"all"}}><div style={{width:1,height:p>=1?88:0,background:`linear-gradient(to bottom,transparent,${G})`,transition:"height 0.9s cubic-bezier(0.16,1,0.3,1)",marginBottom:36}}/><div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:88,letterSpacing:30,background:`linear-gradient(135deg,#fff 0%,${GL} 50%,#fff 100%)`,backgroundSize:"300% 100%",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",opacity:p>=1?1:0,transform:p>=1?"translateY(0)":"translateY(20px)",transition:"opacity 0.8s ease 0.2s,transform 0.8s cubic-bezier(0.16,1,0.3,1) 0.2s",animation:p>=1?"goldShimmer 3s ease infinite":"none"}}>LUXX</div><div style={{fontFamily:"'Montserrat',sans-serif",fontWeight:300,fontSize:10,letterSpacing:7,color:"rgba(255,255,255,0.35)",marginTop:14,opacity:p>=2?1:0,transition:"opacity 0.6s ease"}}>FINE JEWELRY</div><div style={{width:1,height:p>=2?88:0,background:`linear-gradient(to bottom,${G},transparent)`,transition:"height 0.9s cubic-bezier(0.16,1,0.3,1)",marginTop:36}}/></div>);}
+    function Grain(){return <div style={{position:"fixed",inset:0,zIndex:997,pointerEvents:"none",opacity:0.04,backgroundImage:`url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")`,backgroundRepeat:"repeat",backgroundSize:"200px 200px"}}/>;}
+    function FadeUp({children,inView,delay=0,y=36}){return <div style={{opacity:inView?1:0,transform:inView?"translateY(0)":`translateY(${y}px)`,transition:`opacity 0.9s ease ${delay}s,transform 0.9s cubic-bezier(0.16,1,0.3,1) ${delay}s`}}>{children}</div>;}
+    function SlideUp({children,inView,delay=0}){return <div style={{overflow:"hidden"}}><div style={{transform:inView?"translateY(0)":"translateY(105%)",transition:`transform 1s cubic-bezier(0.16,1,0.3,1) ${delay}s`}}>{children}</div></div>;}
+    function StatCard({num,suffix,label,inView,decimal}){const c=useCounter(num,inView,1800,decimal);return(<div style={{textAlign:"center"}}><div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:"clamp(52px,5.5vw,76px)",letterSpacing:4,lineHeight:1,background:`linear-gradient(135deg,${G} 0%,${GL} 60%,${G} 100%)`,WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent"}}>{decimal?c.toFixed(1):c}{suffix}</div><div style={{fontFamily:"'Montserrat',sans-serif",fontWeight:300,fontSize:9,letterSpacing:4,color:"rgba(255,255,255,0.38)",marginTop:10,textTransform:"uppercase"}}>{label}</div></div>);}
+    function WatchIndicator({bgProgress,accent,isMobile}){const idx=getCurrentWatchIdx(bgProgress);return(<div style={{position:"fixed",bottom:isMobile?16:40,right:isMobile?12:48,zIndex:100,textAlign:"right",pointerEvents:"none"}}><div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:8,marginBottom:16}}>{WATCH_IMAGES.map((_,i)=>{const a=i===idx,past=i<idx;return(<div key={i} style={{display:"flex",alignItems:"center",gap:8}}><span style={{fontFamily:"'Montserrat',sans-serif",fontSize:8,letterSpacing:3,color:a?accent:"rgba(255,255,255,0.2)",transition:"color 0.6s ease",display:isMobile?"none":"inline"}}>{WATCH_NAMES[i]}</span><div style={{width:a?24:6,height:2,background:a?accent:past?`${G}60`:"rgba(255,255,255,0.15)",borderRadius:2,transition:"all 0.5s ease"}}/></div>);})}</div><div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:isMobile?18:28,letterSpacing:isMobile?2:4,color:accent,transition:"color 0.8s ease",lineHeight:1}}>{WATCH_LABELS[idx]}</div><div style={{fontFamily:"'Montserrat',sans-serif",fontSize:8,letterSpacing:3,color:"rgba(255,255,255,0.3)",marginTop:4}}>CURRENT PIECE</div></div>);}
 
-const FEATURED = [
-  { name: "Sovereign Cuban", tag: "BESTSELLER", desc: "18K gold-plated. 6mm. 24 inches.", price: "$349", img: "https://images.unsplash.com/photo-1611652022419-a9419f74343d?w=800&q=90&fit=crop" },
-  { name: "Noir GMT", tag: "NEW ARRIVAL", desc: "All-black case. Gold crown. 42mm.", price: "$529", img: "https://images.unsplash.com/photo-1547996160-81dfa63595aa?w=800&q=90&fit=crop" },
-  { name: "Empire Signet", tag: "LIMITED", desc: "Moissanite pavé. 14K gold fill.", price: "$279", img: "https://images.unsplash.com/photo-1515377905703-c4788e51af15?w=800&q=90&fit=crop" },
-];
+    // ── MAIN APP ─────────────────────────────────────────
+    function Luxx(){
+      const[loading,setLoading]=useState(true);
+      const bgP=useBgProgress(),scrollY=useScrollY(),bp=useBreakpoint();
+      const isMobile=bp==="mobile",isTablet=bp==="tablet";
+      const accent=getAccent(bgP);
+      const[heroRef,heroIV]=useInView(0.05);
+      const[posRef,posIV]=useInView(0.2);
+      const[statsRef,statsIV]=useInView(0.3);
+      const[jewelRef,jewelIV]=useInView(0.1);
+      const[featRef,featIV]=useInView(0.1);
+      const[craftRef,craftIV]=useInView(0.2);
+      const[testiRef,testiIV]=useInView(0.15);
+      const[ctaRef,ctaIV]=useInView(0.2);
 
-const TESTIMONIALS = [
-  { quote: "I've been to Tiffany's. I've been to Luxx. The difference is I can actually afford to come back to Luxx.", name: "Marcus T.", location: "Atlanta, GA" },
-  { quote: "The chain looks like it costs three times what I paid. People stop me everywhere I go.", name: "Alicia R.", location: "Houston, TX" },
-  { quote: "Bought the GMT for my husband's birthday. He thought I spent way more. That's the whole point.", name: "Jordan M.", location: "Chicago, IL" },
-];
+      return(
+        <div style={{background:BG,color:"#fff",fontFamily:"'Cormorant Garamond',Georgia,serif",overflowX:"hidden"}}>
+          <style>{`
+            @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Bebas+Neue&family=Montserrat:wght@200;300;400;500&display=swap');
+            *{box-sizing:border-box;margin:0;padding:0;}
+            ::-webkit-scrollbar{width:2px;} ::-webkit-scrollbar-track{background:${BG};} ::-webkit-scrollbar-thumb{background:${G};}
+            ::selection{background:${G}44;color:#fff;} a{text-decoration:none;}
+            .nav-link{font-family:'Montserrat',sans-serif;font-weight:300;font-size:10px;letter-spacing:3px;color:rgba(255,255,255,0.5);text-transform:uppercase;transition:color 0.3s;}
+            .nav-link:hover{color:${G};}
+            .btn-gold{font-family:'Montserrat',sans-serif;font-size:10px;letter-spacing:3px;text-transform:uppercase;border:1px solid ${G};color:${G};background:transparent;padding:13px 32px;cursor:pointer;transition:all 0.35s ease;}
+            .btn-gold:hover{background:${G};color:#000;}
+            .btn-fill{font-family:'Montserrat',sans-serif;font-size:10px;letter-spacing:3px;text-transform:uppercase;border:1px solid ${G};color:#000;background:${G};padding:16px 52px;cursor:pointer;transition:all 0.35s ease;}
+            .btn-fill:hover{background:transparent;color:${G};}
+            .feat-wrap:hover .feat-img{transform:scale(1.07);} .feat-img{transition:transform 0.9s cubic-bezier(0.16,1,0.3,1);}
+            .testi-card{border:1px solid rgba(201,168,76,0.12);padding:40px 36px;transition:border-color 0.4s,background 0.4s;background:rgba(7,7,7,0.7);}
+            .testi-card:hover{border-color:rgba(201,168,76,0.35);background:rgba(7,7,7,0.85);}
+            .mat-pill{font-family:'Montserrat',sans-serif;font-size:9px;letter-spacing:3px;border:1px solid rgba(201,168,76,0.3);color:rgba(255,255,255,0.45);padding:9px 18px;text-transform:uppercase;transition:all 0.3s;}
+            .mat-pill:hover{border-color:${G};color:${G};}
+            @keyframes goldShimmer{0%{background-position:-200% center}100%{background-position:200% center}}
+            @keyframes marquee{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+            @keyframes pulse{0%,100%{opacity:0.3}50%{opacity:1}}
+            @keyframes ringPulse{0%,100%{border-color:rgba(201,168,76,0.08)}50%{border-color:rgba(201,168,76,0.3)}}
+            @media(max-width:767px){.btn-fill{padding:14px 28px !important;width:100%;max-width:260px;}.btn-gold{padding:12px 20px !important;width:100%;max-width:260px;}.testi-card{padding:28px 18px !important;}.mat-pill{padding:7px 11px !important;font-size:8px !important;}}
+            @media(min-width:768px) and (max-width:1023px){.btn-fill{padding:15px 40px !important;}}
+          `}</style>
 
-const STATS = [
-  { num: 500, suffix: "+", label: "Pieces Crafted" },
-  { num: 4.9, suffix: "★", label: "Average Rating", decimal: true },
-  { num: 10,  suffix: "+", label: "Years of Craft" },
-  { num: 100, suffix: "%", label: "Satisfaction Guaranteed" },
-];
+          {loading&&<Loader onDone={()=>setLoading(false)}/>}
+          <Grain/>
 
-// ── COLOR UTILS ────────────────────────────────────────
-function hexToRgb(h) {
-  return { r: parseInt(h.slice(1,3),16), g: parseInt(h.slice(3,5),16), b: parseInt(h.slice(5,7),16) };
-}
-function lerpHex(h1, h2, t) {
-  const a = hexToRgb(h1), b = hexToRgb(h2);
-  return `rgb(${Math.round(a.r+(b.r-a.r)*t)},${Math.round(a.g+(b.g-a.g)*t)},${Math.round(a.b+(b.b-a.b)*t)})`;
-}
-function getAccent(p) {
-  const n = WATCH_ACCENTS.length;
-  const fi = p * (n-1);
-  const i = Math.min(n-2, Math.floor(fi));
-  return lerpHex(WATCH_ACCENTS[i], WATCH_ACCENTS[i+1], fi-i);
-}
-
-// Opacity for each background image based on total page scroll progress
-function getBgOpacity(i, p) {
-  const n = WATCH_IMAGES.length, seg = 1/n;
-  const start = i*seg, end = (i+1)*seg, fade = seg*0.35;
-  if (i === 0 && p <= end-fade) return 1;
-  if (i === 0 && p <= end) return 1-(p-(end-fade))/fade;
-  if (i === 0) return 0;
-  if (i === n-1 && p >= start) return Math.min(1,(p-start)/fade);
-  if (i === n-1) return 0;
-  if (p < start) return 0;
-  if (p < start+fade) return (p-start)/fade;
-  if (p <= end-fade) return 1;
-  if (p <= end) return 1-(p-(end-fade))/fade;
-  return 0;
-}
-function getCurrentWatchIdx(p) {
-  return Math.min(WATCH_IMAGES.length-1, Math.floor(p * WATCH_IMAGES.length));
-}
-
-// ── HOOKS ──────────────────────────────────────────────
-function useBgProgress() {
-  const [p, setP] = useState(0);
-  const raf = useRef(null);
-  useEffect(() => {
-    const fn = () => {
-      const max = document.documentElement.scrollHeight - window.innerHeight;
-      setP(max > 0 ? Math.max(0, Math.min(1, window.scrollY/max)) : 0);
-    };
-    const onScroll = () => {
-      if (raf.current) cancelAnimationFrame(raf.current);
-      raf.current = requestAnimationFrame(fn);
-    };
-    window.addEventListener("scroll", onScroll, { passive: true });
-    fn();
-    return () => { window.removeEventListener("scroll", onScroll); if(raf.current) cancelAnimationFrame(raf.current); };
-  }, []);
-  return p;
-}
-function useScrollY() {
-  const [y, setY] = useState(0);
-  useEffect(() => {
-    const fn = () => setY(window.scrollY);
-    window.addEventListener("scroll", fn, { passive: true });
-    return () => window.removeEventListener("scroll", fn);
-  }, []);
-  return y;
-}
-function useInView(threshold=0.15) {
-  const ref = useRef(null);
-  const [inView, setInView] = useState(false);
-  useEffect(() => {
-    const obs = new IntersectionObserver(([e]) => { if(e.isIntersecting) setInView(true); }, { threshold });
-    if(ref.current) obs.observe(ref.current);
-    return () => obs.disconnect();
-  }, []);
-  return [ref, inView];
-}
-function useCounter(target, inView, duration=1800, decimal=false) {
-  const [val, setVal] = useState(0);
-  useEffect(() => {
-    if(!inView) return;
-    const steps=duration/16, inc=target/steps; let cur=0;
-    const t=setInterval(()=>{
-      cur+=inc;
-      if(cur>=target){setVal(target);clearInterval(t);return;}
-      setVal(decimal?Math.round(cur*10)/10:Math.floor(cur));
-    },16);
-    return ()=>clearInterval(t);
-  },[inView,target]);
-  return val;
-}
-
-function useBreakpoint() {
-  const [bp, setBp] = useState("desktop");
-  useEffect(() => {
-    const fn = () => {
-      const w = window.innerWidth;
-      setBp(w < 768 ? "mobile" : w < 1024 ? "tablet" : "desktop");
-    };
-    fn();
-    window.addEventListener("resize", fn);
-    return () => window.removeEventListener("resize", fn);
-  }, []);
-  return bp;
-}
-
-// ── COMPONENTS ─────────────────────────────────────────
-function Loader({onDone}) {
-  const [phase, setPhase] = useState(0);
-  useEffect(() => {
-    const t1=setTimeout(()=>setPhase(1),300);
-    const t2=setTimeout(()=>setPhase(2),1200);
-    const t3=setTimeout(()=>setPhase(3),2200);
-    const t4=setTimeout(()=>onDone(),2800);
-    return ()=>[t1,t2,t3,t4].forEach(clearTimeout);
-  },[]);
-  return (
-    <div style={{position:"fixed",inset:0,zIndex:9999,background:BG,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",opacity:phase===3?0:1,transition:phase===3?"opacity 0.7s ease":"none",pointerEvents:phase===3?"none":"all"}}>
-      <div style={{width:1,height:phase>=1?88:0,background:`linear-gradient(to bottom,transparent,${G})`,transition:"height 0.9s cubic-bezier(0.16,1,0.3,1)",marginBottom:36}}/>
-      <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:88,letterSpacing:30,background:`linear-gradient(135deg,#fff 0%,${GL} 50%,#fff 100%)`,backgroundSize:"300% 100%",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",opacity:phase>=1?1:0,transform:phase>=1?"translateY(0)":"translateY(20px)",transition:"opacity 0.8s ease 0.2s,transform 0.8s cubic-bezier(0.16,1,0.3,1) 0.2s",animation:phase>=1?"goldShimmer 3s ease infinite":"none"}}>LUXX</div>
-      <div style={{fontFamily:"'Montserrat',sans-serif",fontWeight:300,fontSize:10,letterSpacing:7,color:"rgba(255,255,255,0.35)",marginTop:14,opacity:phase>=2?1:0,transition:"opacity 0.6s ease"}}>FINE JEWELRY</div>
-      <div style={{width:1,height:phase>=2?88:0,background:`linear-gradient(to bottom,${G},transparent)`,transition:"height 0.9s cubic-bezier(0.16,1,0.3,1)",marginTop:36}}/>
-    </div>
-  );
-}
-
-function Grain() {
-  return <div style={{position:"fixed",inset:0,zIndex:997,pointerEvents:"none",opacity:0.04,backgroundImage:`url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")`,backgroundRepeat:"repeat",backgroundSize:"200px 200px"}}/>;
-}
-
-function FadeUp({children, inView, delay=0, y=36}) {
-  return <div style={{opacity:inView?1:0,transform:inView?"translateY(0)":`translateY(${y}px)`,transition:`opacity 0.9s ease ${delay}s,transform 0.9s cubic-bezier(0.16,1,0.3,1) ${delay}s`}}>{children}</div>;
-}
-
-function SlideUp({children, inView, delay=0}) {
-  return <div style={{overflow:"hidden"}}><div style={{transform:inView?"translateY(0)":"translateY(105%)",transition:`transform 1s cubic-bezier(0.16,1,0.3,1) ${delay}s`}}>{children}</div></div>;
-}
-
-function StatCard({num, suffix, label, inView, decimal}) {
-  const count = useCounter(num, inView, 1800, decimal);
-  return (
-    <div style={{textAlign:"center"}}>
-      <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:"clamp(52px,5.5vw,76px)",letterSpacing:4,lineHeight:1,background:`linear-gradient(135deg,${G} 0%,${GL} 60%,${G} 100%)`,WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent"}}>
-        {decimal ? count.toFixed(1) : count}{suffix}
-      </div>
-      <div style={{fontFamily:"'Montserrat',sans-serif",fontWeight:300,fontSize:9,letterSpacing:4,color:"rgba(255,255,255,0.38)",marginTop:10,textTransform:"uppercase"}}>{label}</div>
-    </div>
-  );
-}
-
-// ── WATCH TIME INDICATOR ───────────────────────────────
-function WatchIndicator({bgProgress, accent, isMobile}) {
-  const idx = getCurrentWatchIdx(bgProgress);
-  return (
-    <div style={{position:"fixed",bottom:isMobile?16:40,right:isMobile?12:48,zIndex:100,textAlign:"right",pointerEvents:"none"}}>
-      {/* dots */}
-      <div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:8,marginBottom:16}}>
-        {WATCH_IMAGES.map((_,i) => {
-          const active = i === idx;
-          const past = i < idx;
-          return (
-            <div key={i} style={{display:"flex",alignItems:"center",gap:8}}>
-              <span style={{fontFamily:"'Montserrat',sans-serif",fontSize:8,letterSpacing:3,color:active?accent:"rgba(255,255,255,0.2)",transition:"color 0.6s ease",opacity:active||past?1:0.4,display:isMobile?"none":"inline"}}>{WATCH_NAMES[i]}</span>
-              <div style={{width:active?24:6,height:2,background:active?accent:past?`${G}60`:"rgba(255,255,255,0.15)",borderRadius:2,transition:"all 0.5s ease"}}/>
-            </div>
-          );
-        })}
-      </div>
-      {/* time */}
-      <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:isMobile?18:28,letterSpacing:isMobile?2:4,color:accent,transition:"color 0.8s ease",lineHeight:1}}>
-        {WATCH_LABELS[idx]}
-      </div>
-      <div style={{fontFamily:"'Montserrat',sans-serif",fontSize:8,letterSpacing:3,color:"rgba(255,255,255,0.3)",marginTop:4}}>CURRENT PIECE</div>
-    </div>
-  );
-}
-
-// ── MAIN ───────────────────────────────────────────────
-function Luxx() {
-  const [loading, setLoading] = useState(true);
-  const bgProgress = useBgProgress();
-  const scrollY = useScrollY();
-  const bp = useBreakpoint();
-  const isMobile = bp === "mobile";
-  const isTablet = bp === "tablet";
-  const accent = getAccent(bgProgress);
-
-  const [heroRef,   heroInView]   = useInView(0.05);
-  const [posRef,    posInView]    = useInView(0.2);
-  const [statsRef,  statsInView]  = useInView(0.3);
-  const [featRef,   featInView]   = useInView(0.1);
-  const [craftRef,  craftInView]  = useInView(0.2);
-  const [testiRef,  testiInView]  = useInView(0.15);
-  const [ctaRef,    ctaInView]    = useInView(0.2);
-
-  return (
-    <div style={{background:BG,color:"#fff",fontFamily:"'Cormorant Garamond',Georgia,serif",overflowX:"hidden"}}>
-      <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Bebas+Neue&family=Montserrat:wght@200;300;400;500&display=swap');
-        *{box-sizing:border-box;margin:0;padding:0;}
-        ::-webkit-scrollbar{width:2px;}
-        ::-webkit-scrollbar-track{background:${BG};}
-        ::-webkit-scrollbar-thumb{background:${G};}
-        ::selection{background:${G}44;color:#fff;}
-        a{text-decoration:none;}
-        .nav-link{font-family:'Montserrat',sans-serif;font-weight:300;font-size:10px;letter-spacing:3px;color:rgba(255,255,255,0.5);text-transform:uppercase;transition:color 0.3s;}
-        .nav-link:hover{color:${G};}
-        .btn-gold{font-family:'Montserrat',sans-serif;font-size:10px;letter-spacing:3px;text-transform:uppercase;border:1px solid ${G};color:${G};background:transparent;padding:13px 32px;cursor:pointer;transition:all 0.35s ease;}
-        .btn-gold:hover{background:${G};color:#000;}
-        .btn-fill{font-family:'Montserrat',sans-serif;font-size:10px;letter-spacing:3px;text-transform:uppercase;border:1px solid ${G};color:#000;background:${G};padding:16px 52px;cursor:pointer;transition:all 0.35s ease;}
-        .btn-fill:hover{background:transparent;color:${G};}
-        .feat-wrap:hover .feat-img{transform:scale(1.07);}
-        .feat-img{transition:transform 0.9s cubic-bezier(0.16,1,0.3,1);}
-        .testi-card{border:1px solid rgba(201,168,76,0.12);padding:40px 36px;transition:border-color 0.4s,background 0.4s;background:rgba(7,7,7,0.7);}
-        .testi-card:hover{border-color:rgba(201,168,76,0.35);background:rgba(7,7,7,0.85);}
-        .mat-pill{font-family:'Montserrat',sans-serif;font-size:9px;letter-spacing:3px;border:1px solid rgba(201,168,76,0.3);color:rgba(255,255,255,0.45);padding:9px 18px;text-transform:uppercase;transition:all 0.3s;}
-        .mat-pill:hover{border-color:${G};color:${G};}
-        @keyframes goldShimmer{0%{background-position:-200% center}100%{background-position:200% center}}
-        @keyframes marquee{from{transform:translateX(0)}to{transform:translateX(-50%)}}
-        @keyframes pulse{0%,100%{opacity:0.3}50%{opacity:1}}
-        @keyframes ringPulse{0%,100%{border-color:rgba(201,168,76,0.08)}50%{border-color:rgba(201,168,76,0.3)}}
-        @media(max-width:767px){
-          .btn-fill{padding:14px 28px !important;width:100%;max-width:260px;}
-          .btn-gold{padding:12px 20px !important;width:100%;max-width:260px;}
-          .testi-card{padding:28px 18px !important;}
-          .mat-pill{padding:7px 11px !important;font-size:8px !important;}
-          .feat-wrap .feat-img{transform:none !important;}
-        }
-        @media(min-width:768px) and (max-width:1023px){
-          .btn-fill{padding:15px 40px !important;}
-        }
-
-      `}</style>
-
-      {loading && <Loader onDone={() => setLoading(false)}/>}
-      <Grain/>
-
-      {/* ── FIXED WATCH BACKGROUND ── */}
-      <div style={{position:"fixed",inset:0,zIndex:0,overflow:"hidden"}}>
-        {WATCH_IMAGES.map((src, i) => (
-          <div key={i} style={{
-            position:"absolute", inset:0,
-            backgroundImage:`url(${src})`,
-            backgroundSize:"cover",
-            backgroundPosition:"center",
-            opacity: getBgOpacity(i, bgProgress),
-            // slight parallax per layer
-            transform:isMobile?"scale(1.0)":`translateY(${(bgProgress - (i+0.5)/WATCH_IMAGES.length) * -80}px) scale(1.08)`,
-            transition:"opacity 1s ease",
-            willChange:"opacity,transform",
-          }}/>
-        ))}
-        {/* Base dark overlay — always on */}
-        <div style={{position:"absolute",inset:0,background:"rgba(7,7,7,0.55)"}}/>
-        {/* Vignette edges */}
-        <div style={{position:"absolute",inset:0,background:"radial-gradient(ellipse at center,transparent 40%,rgba(7,7,7,0.7) 100%)"}}/>
-      </div>
-
-      {/* ── WATCH INDICATOR (fixed bottom-right) ── */}
-      {!loading && <WatchIndicator bgProgress={bgProgress} accent={accent} isMobile={isMobile}/>}
-
-      {/* ── NAV ── */}
-      <nav style={{position:"fixed",top:0,left:0,right:0,zIndex:1000,padding:isMobile?"14px 20px":isTablet?"20px 40px":"22px 60px",display:"flex",alignItems:"center",justifyContent:"space-between",background:`linear-gradient(to bottom,rgba(7,7,7,0.9),transparent)`,opacity:loading?0:1,transition:"opacity 0.8s ease 0.4s"}}>
-        <div style={{display:isMobile?"none":"flex",gap:44}}>
-          <a href="#" className="nav-link">Collections</a>
-          <a href="#" className="nav-link">About</a>
-        </div>
-        <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:isMobile?22:30,letterSpacing:isMobile?7:12,background:`linear-gradient(135deg,#fff 0%,${GL} 60%,#fff 100%)`,backgroundSize:"300% 100%",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",animation:"goldShimmer 5s ease infinite"}}>LUXX</div>
-        <div style={{display:"flex",gap:32,alignItems:"center"}}>
-          <a href="#" className="nav-link" style={{display:isMobile?"none":"inline"}}>Contact</a>
-          <a href="#" className="nav-link" style={{border:`1px solid ${G}55`,padding:isMobile?"7px 14px":"9px 22px",color:G,fontSize:isMobile?9:10}}>Shop Now</a>
-        </div>
-      </nav>
-
-      {/* ── ALL CONTENT (scrolls over fixed bg) ── */}
-      <div style={{position:"relative",zIndex:2}}>
-
-        {/* HERO — transparent, watch fully visible */}
-        <section ref={heroRef} style={{height:"100vh",display:"flex",alignItems:"center",justifyContent:"center",position:"relative"}}>
-          {/* extra gradient so hero text pops */}
-          <div style={{position:"absolute",inset:0,background:"radial-gradient(ellipse at 50% 60%,transparent 20%,rgba(7,7,7,0.5) 80%)"}}/>
-          {/* top accent line */}
-          <div style={{position:"absolute",top:0,left:"50%",transform:"translateX(-50%)",width:1,height:heroInView?160:0,background:`linear-gradient(to bottom,transparent,${G},transparent)`,transition:"height 1.4s cubic-bezier(0.16,1,0.3,1) 0.9s"}}/>
-
-          <div style={{position:"relative",textAlign:"center",padding:"0 24px"}}>
-            <div style={{opacity:heroInView?1:0,transition:"opacity 0.8s ease 1s",fontFamily:"'Montserrat',sans-serif",fontWeight:300,fontSize:9,letterSpacing:isMobile?4:8,color:G,marginBottom:isMobile?16:28}}>
-              EST. 2024 &nbsp;·&nbsp; FINE JEWELRY &nbsp;·&nbsp; JACKSON, MS
-            </div>
-            <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:"clamp(64px,18vw,220px)",letterSpacing:isMobile?4:isTablet?14:24,lineHeight:0.85,background:`linear-gradient(135deg,#fff 0%,${GL} 40%,#fff 70%,${G} 100%)`,backgroundSize:"300% 100%",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",animation:heroInView?"goldShimmer 7s ease infinite":"none",opacity:heroInView?1:0,transform:heroInView?"translateY(0)":"translateY(30px)",transition:"opacity 1s ease 1.3s,transform 1.2s cubic-bezier(0.16,1,0.3,1) 1.3s"}}>
-              LUXX
-            </div>
-            <div style={{overflow:"hidden",marginTop:20}}>
-              <div style={{fontFamily:"'Cormorant Garamond',serif",fontStyle:"italic",fontSize:"clamp(18px,2.8vw,28px)",fontWeight:300,color:"rgba(255,255,255,0.7)",letterSpacing:2,transform:heroInView?"translateY(0)":"translateY(100%)",transition:"transform 1s cubic-bezier(0.16,1,0.3,1) 1.8s"}}>
-                Museum quality. <span style={{color:G}}>Real-world prices.</span>
-              </div>
-            </div>
-            <div style={{marginTop:52,opacity:heroInView?1:0,transition:"opacity 0.8s ease 2.2s",display:"flex",gap:16,justifyContent:"center",flexWrap:"wrap"}}>
-              <button className="btn-fill">Explore Collection</button>
-              <button className="btn-gold">Our Story</button>
-            </div>
-            <div style={{marginTop:24,fontFamily:"'Montserrat',sans-serif",fontSize:9,letterSpacing:4,color:"rgba(255,255,255,0.28)",opacity:heroInView?1:0,transition:"opacity 0.8s ease 2.5s"}}>
-              STARTING AT $199 &nbsp;·&nbsp; FREE SHIPPING OVER $150 &nbsp;·&nbsp; 30-DAY RETURNS
-            </div>
+          {/* Fixed bg */}
+          <div style={{position:"fixed",inset:0,zIndex:0,overflow:"hidden"}}>
+            {WATCH_IMAGES.map((src,i)=>(<div key={i} style={{position:"absolute",inset:0,backgroundImage:`url(${src})`,backgroundSize:"cover",backgroundPosition:"center",opacity:getBgOpacity(i,bgP),transform:isMobile?"scale(1)":`translateY(${(bgP-(i+0.5)/WATCH_IMAGES.length)*-80}px) scale(1.08)`,transition:"opacity 1s ease",willChange:"opacity,transform"}}/>))}
+            <div style={{position:"absolute",inset:0,background:"rgba(7,7,7,0.55)"}}/>
+            <div style={{position:"absolute",inset:0,background:"radial-gradient(ellipse at center,transparent 40%,rgba(7,7,7,0.7) 100%)"}}/>
           </div>
 
-          <div style={{position:"absolute",bottom:40,left:"50%",transform:"translateX(-50%)",display:"flex",flexDirection:"column",alignItems:"center",gap:12,opacity:heroInView?1:0,transition:"opacity 1s ease 2.8s"}}>
-            <div style={{width:1,height:56,background:`linear-gradient(to bottom,${G},transparent)`,animation:"pulse 2.5s ease infinite"}}/>
-            <span style={{fontFamily:"'Montserrat',sans-serif",fontSize:8,letterSpacing:4,color:"rgba(255,255,255,0.25)"}}>SCROLL</span>
-          </div>
-        </section>
+          {!loading&&<WatchIndicator bgProgress={bgP} accent={accent} isMobile={isMobile}/>}
 
-        {/* MARQUEE — semi-dark strip */}
-        <div style={{borderTop:`1px solid ${G}25`,borderBottom:`1px solid ${G}25`,padding:"16px 0",overflow:"hidden",background:"rgba(7,7,7,0.82)"}}>
-          <div style={{display:"flex",gap:80,whiteSpace:"nowrap",animation:"marquee 28s linear infinite"}}>
-            {[...Array(8)].map((_,i) => (
-              <span key={i} style={{fontFamily:"'Montserrat',sans-serif",fontSize:9,letterSpacing:5,color:G}}>
-                Chains &nbsp;·&nbsp; Watches &nbsp;·&nbsp; Rings &nbsp;·&nbsp; Fine Jewelry &nbsp;·&nbsp; Custom Orders &nbsp;·&nbsp; Free Shipping &nbsp;·&nbsp;
-              </span>
-            ))}
-          </div>
-        </div>
-
-        {/* PHILOSOPHY — glass dark panel, watch breathes through */}
-        <section ref={posRef} style={{padding:isMobile?"72px 24px 64px":isTablet?"100px 40px 80px":"140px 60px 120px",position:"relative"}}>
-          <div style={{position:"absolute",inset:0,background:"rgba(7,7,7,0.78)"}}/>
-          <div style={{position:"absolute",right:-60,top:"50%",transform:"translateY(-50%)",fontFamily:"'Bebas Neue',sans-serif",fontSize:"45vw",color:"rgba(201,168,76,0.04)",lineHeight:1,userSelect:"none",pointerEvents:"none"}}>L</div>
-          <div style={{maxWidth:860,position:"relative",zIndex:1}}>
-            <FadeUp inView={posInView} delay={0}><p style={{fontFamily:"'Montserrat',sans-serif",fontSize:10,letterSpacing:6,color:G,marginBottom:36}}>OUR PHILOSOPHY</p></FadeUp>
-            <SlideUp inView={posInView} delay={0.1}><div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:"clamp(50px,7.5vw,100px)",letterSpacing:4,lineHeight:0.9,color:"#fff"}}>AFFORDABLE ELEGANCE</div></SlideUp>
-            <SlideUp inView={posInView} delay={0.25}><div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:"clamp(50px,7.5vw,100px)",letterSpacing:4,lineHeight:0.9,color:G,marginBottom:36}}>ISN'T A COMPROMISE.</div></SlideUp>
-            <FadeUp inView={posInView} delay={0.5}><div style={{width:posInView?72:0,height:1,background:G,marginBottom:36,transition:"width 1.2s ease 0.7s"}}/></FadeUp>
-            <FadeUp inView={posInView} delay={0.62}><p style={{fontFamily:"'Cormorant Garamond',serif",fontStyle:"italic",fontSize:"clamp(18px,2.4vw,26px)",fontWeight:300,color:"rgba(255,255,255,0.6)",lineHeight:1.75,maxWidth:640}}>Fine jewelry has always been about the statement, not the price tag. We built Luxx so the statement belongs to everyone — without ever sacrificing the craftsmanship behind it.</p></FadeUp>
-          </div>
-        </section>
-
-        {/* OPEN SECTION — transparent so watch shows fully between panels */}
-        <div style={{height:isMobile?"8vh":"30vh",display:"flex",alignItems:"center",justifyContent:"center",position:"relative"}}>
-          <div style={{textAlign:"center"}}>
-            <p style={{fontFamily:"'Montserrat',sans-serif",fontSize:9,letterSpacing:6,color:"rgba(255,255,255,0.3)"}}>SCROLL TO DISCOVER THE COLLECTION</p>
-          </div>
-        </div>
-
-        {/* STATS — dark panel */}
-        <section ref={statsRef} style={{padding:isMobile?"52px 20px":isTablet?"72px 40px":"100px 60px",background:"rgba(7,7,7,0.88)",borderTop:`1px solid ${G}18`,borderBottom:`1px solid ${G}18`}}>
-          <FadeUp inView={statsInView} delay={0}><p style={{fontFamily:"'Montserrat',sans-serif",fontSize:10,letterSpacing:6,color:G,textAlign:"center",marginBottom:72}}>BY THE NUMBERS</p></FadeUp>
-          <div style={{display:"flex",justifyContent:"center",flexWrap:"wrap",maxWidth:900,margin:"0 auto"}}>
-            {STATS.map((s,i) => (
-              <div key={s.label} style={{padding:isMobile?"0 0 36px 0":isTablet?"0 32px":"0 56px",width:isMobile?"50%":"auto",textAlign:isMobile?"center":"center",borderRight:isMobile?"none":(i<STATS.length-1?`1px solid ${G}20`:"none"),opacity:statsInView?1:0,transform:statsInView?"translateY(0)":"translateY(28px)",transition:`opacity 0.8s ease ${i*0.12}s,transform 0.8s cubic-bezier(0.16,1,0.3,1) ${i*0.12}s`}}>
-                <StatCard {...s} inView={statsInView}/>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        {/* OPEN SECTION — watch breathes again */}
-        <div style={{height:isMobile?"12vh":"40vh"}}/>
-
-        {/* FEATURED — dark solid panel */}
-        <section ref={featRef} style={{background:"rgba(7,7,7,0.9)",padding:isMobile?"56px 16px":isTablet?"80px 40px":"120px 60px",borderTop:`1px solid ${G}10`}}>
-          <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-end",marginBottom:72,flexWrap:"wrap",gap:24}}>
-            <div>
-              <FadeUp inView={featInView} delay={0}><p style={{fontFamily:"'Montserrat',sans-serif",fontSize:10,letterSpacing:6,color:G,marginBottom:16}}>HAND-SELECTED</p></FadeUp>
-              <SlideUp inView={featInView} delay={0.12}><div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:"clamp(44px,6vw,78px)",letterSpacing:6,color:"#fff"}}>SIGNATURE PIECES</div></SlideUp>
+          {/* Nav */}
+          <nav style={{position:"fixed",top:0,left:0,right:0,zIndex:1000,padding:isMobile?"14px 20px":isTablet?"20px 40px":"22px 60px",display:"flex",alignItems:"center",justifyContent:"space-between",background:"linear-gradient(to bottom,rgba(7,7,7,0.9),transparent)",opacity:loading?0:1,transition:"opacity 0.8s ease 0.4s"}}>
+            <div style={{display:isMobile?"none":"flex",gap:44}}>
+              <a href="#" className="nav-link">Collections</a>
+              <a href="#" className="nav-link">About</a>
             </div>
-            <FadeUp inView={featInView} delay={0.3}><button className="btn-gold">View All</button></FadeUp>
-          </div>
-          <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(300px,1fr))",gap:3}}>
-            {FEATURED.map((f,i) => (
-              <div key={f.name} className="feat-wrap" style={{position:"relative",overflow:"hidden",opacity:featInView?1:0,transform:featInView?"translateY(0)":"translateY(60px)",transition:`opacity 0.9s ease ${0.15+i*0.15}s,transform 0.9s cubic-bezier(0.16,1,0.3,1) ${0.15+i*0.15}s`}}>
-                <div style={{height:isMobile?280:isTablet?380:480,overflow:"hidden",position:"relative"}}>
-                  <img src={f.img} alt={f.name} className="feat-img" style={{width:"100%",height:"100%",objectFit:"cover",filter:"brightness(0.65) saturate(0.85)"}}/>
-                  <div style={{position:"absolute",top:20,right:20,background:G,color:"#000",fontFamily:"'Montserrat',sans-serif",fontWeight:500,fontSize:12,letterSpacing:1,padding:"6px 16px"}}>{f.price}</div>
+            <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:isMobile?22:30,letterSpacing:isMobile?7:12,background:`linear-gradient(135deg,#fff 0%,${GL} 60%,#fff 100%)`,backgroundSize:"300% 100%",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",animation:"goldShimmer 5s ease infinite"}}>LUXX</div>
+            <div style={{display:"flex",gap:32,alignItems:"center"}}>
+              <a href="#" className="nav-link" style={{display:isMobile?"none":"inline"}}>Contact</a>
+              <a href="#" className="nav-link" style={{border:`1px solid ${G}55`,padding:isMobile?"7px 14px":"9px 22px",color:G,fontSize:isMobile?9:10}}>Shop Now</a>
+            </div>
+          </nav>
+
+          <div style={{position:"relative",zIndex:2}}>
+
+            {/* HERO */}
+            <section ref={heroRef} style={{height:"100vh",display:"flex",alignItems:"center",justifyContent:"center",position:"relative"}}>
+              <div style={{position:"absolute",inset:0,background:"radial-gradient(ellipse at 50% 60%,transparent 20%,rgba(7,7,7,0.5) 80%)"}}/>
+              <div style={{position:"absolute",top:0,left:"50%",transform:"translateX(-50%)",width:1,height:heroIV?160:0,background:`linear-gradient(to bottom,transparent,${G},transparent)`,transition:"height 1.4s cubic-bezier(0.16,1,0.3,1) 0.9s"}}/>
+              <div style={{position:"relative",textAlign:"center",padding:"0 24px"}}>
+                <div style={{opacity:heroIV?1:0,transition:"opacity 0.8s ease 1s",fontFamily:"'Montserrat',sans-serif",fontWeight:300,fontSize:9,letterSpacing:isMobile?4:8,color:G,marginBottom:isMobile?16:28}}>EST. 2024 &nbsp;·&nbsp; FINE JEWELRY &nbsp;·&nbsp; JACKSON, MS</div>
+                <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:"clamp(64px,18vw,220px)",letterSpacing:isMobile?4:isTablet?14:24,lineHeight:0.85,background:`linear-gradient(135deg,#fff 0%,${GL} 40%,#fff 70%,${G} 100%)`,backgroundSize:"300% 100%",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",animation:heroIV?"goldShimmer 7s ease infinite":"none",opacity:heroIV?1:0,transform:heroIV?"translateY(0)":"translateY(30px)",transition:"opacity 1s ease 1.3s,transform 1.2s cubic-bezier(0.16,1,0.3,1) 1.3s"}}>LUXX</div>
+                <div style={{overflow:"hidden",marginTop:20}}><div style={{fontFamily:"'Cormorant Garamond',serif",fontStyle:"italic",fontSize:"clamp(18px,2.8vw,28px)",fontWeight:300,color:"rgba(255,255,255,0.7)",letterSpacing:2,transform:heroIV?"translateY(0)":"translateY(100%)",transition:"transform 1s cubic-bezier(0.16,1,0.3,1) 1.8s"}}>Museum quality. <span style={{color:G}}>Real-world prices.</span></div></div>
+                <div style={{marginTop:52,opacity:heroIV?1:0,transition:"opacity 0.8s ease 2.2s",display:"flex",gap:16,justifyContent:"center",flexWrap:"wrap"}}>
+                  <button className="btn-fill">Explore Collection</button>
+                  <button className="btn-gold">Our Story</button>
                 </div>
-                <div style={{position:"absolute",bottom:0,left:0,right:0,padding:"56px 28px 30px",background:"linear-gradient(to top,rgba(7,7,7,0.97) 0%,transparent 100%)"}}>
-                  <p style={{fontFamily:"'Montserrat',sans-serif",fontSize:8,letterSpacing:4,color:G,marginBottom:10}}>{f.tag}</p>
-                  <h3 style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:30,letterSpacing:3,color:"#fff",marginBottom:8}}>{f.name}</h3>
-                  <p style={{fontFamily:"'Cormorant Garamond',serif",fontStyle:"italic",fontSize:15,color:"rgba(255,255,255,0.48)",marginBottom:24}}>{f.desc}</p>
-                  <button className="btn-gold" style={{fontSize:9,padding:"10px 24px"}}>Add to Bag</button>
+                <div style={{marginTop:24,fontFamily:"'Montserrat',sans-serif",fontSize:9,letterSpacing:4,color:"rgba(255,255,255,0.28)",opacity:heroIV?1:0,transition:"opacity 0.8s ease 2.5s"}}>STARTING AT $199 &nbsp;·&nbsp; FREE SHIPPING OVER $150 &nbsp;·&nbsp; 30-DAY RETURNS</div>
+              </div>
+              <div style={{position:"absolute",bottom:40,left:"50%",transform:"translateX(-50%)",display:"flex",flexDirection:"column",alignItems:"center",gap:12,opacity:heroIV?1:0,transition:"opacity 1s ease 2.8s"}}>
+                <div style={{width:1,height:56,background:`linear-gradient(to bottom,${G},transparent)`,animation:"pulse 2.5s ease infinite"}}/>
+                <span style={{fontFamily:"'Montserrat',sans-serif",fontSize:8,letterSpacing:4,color:"rgba(255,255,255,0.25)"}}>SCROLL</span>
+              </div>
+            </section>
+
+            {/* MARQUEE */}
+            <div style={{borderTop:`1px solid ${G}25`,borderBottom:`1px solid ${G}25`,padding:"16px 0",overflow:"hidden",background:"rgba(7,7,7,0.82)"}}>
+              <div style={{display:"flex",gap:80,whiteSpace:"nowrap",animation:"marquee 28s linear infinite"}}>
+                {[...Array(8)].map((_,i)=>(<span key={i} style={{fontFamily:"'Montserrat',sans-serif",fontSize:9,letterSpacing:5,color:G}}>Chains &nbsp;·&nbsp; Watches &nbsp;·&nbsp; Rings &nbsp;·&nbsp; Fine Jewelry &nbsp;·&nbsp; Custom Orders &nbsp;·&nbsp; Free Shipping &nbsp;·&nbsp;</span>))}
+              </div>
+            </div>
+
+            {/* PHILOSOPHY */}
+            <section ref={posRef} style={{padding:isMobile?"72px 24px 64px":isTablet?"100px 40px 80px":"140px 60px 120px",position:"relative"}}>
+              <div style={{position:"absolute",inset:0,background:"rgba(7,7,7,0.78)"}}/>
+              <div style={{position:"absolute",right:-60,top:"50%",transform:"translateY(-50%)",fontFamily:"'Bebas Neue',sans-serif",fontSize:"45vw",color:"rgba(201,168,76,0.04)",lineHeight:1,userSelect:"none",pointerEvents:"none"}}>L</div>
+              <div style={{maxWidth:860,position:"relative",zIndex:1}}>
+                <FadeUp inView={posIV} delay={0}><p style={{fontFamily:"'Montserrat',sans-serif",fontSize:10,letterSpacing:6,color:G,marginBottom:36}}>OUR PHILOSOPHY</p></FadeUp>
+                <SlideUp inView={posIV} delay={0.1}><div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:"clamp(50px,7.5vw,100px)",letterSpacing:4,lineHeight:0.9,color:"#fff"}}>AFFORDABLE ELEGANCE</div></SlideUp>
+                <SlideUp inView={posIV} delay={0.25}><div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:"clamp(50px,7.5vw,100px)",letterSpacing:4,lineHeight:0.9,color:G,marginBottom:36}}>ISN'T A COMPROMISE.</div></SlideUp>
+                <FadeUp inView={posIV} delay={0.5}><div style={{width:posIV?72:0,height:1,background:G,marginBottom:36,transition:"width 1.2s ease 0.7s"}}/></FadeUp>
+                <FadeUp inView={posIV} delay={0.62}><p style={{fontFamily:"'Cormorant Garamond',serif",fontStyle:"italic",fontSize:"clamp(18px,2.4vw,26px)",fontWeight:300,color:"rgba(255,255,255,0.6)",lineHeight:1.75,maxWidth:640}}>Fine jewelry has always been about the statement, not the price tag. We built Luxx so the statement belongs to everyone — without ever sacrificing the craftsmanship behind it.</p></FadeUp>
+              </div>
+            </section>
+
+            {/* OPEN */}
+            <div style={{height:isMobile?"8vh":"30vh",display:"flex",alignItems:"center",justifyContent:"center"}}>
+              <p style={{fontFamily:"'Montserrat',sans-serif",fontSize:9,letterSpacing:6,color:"rgba(255,255,255,0.3)"}}>SCROLL TO DISCOVER THE COLLECTION</p>
+            </div>
+
+            {/* STATS */}
+            <section ref={statsRef} style={{padding:isMobile?"52px 20px":isTablet?"72px 40px":"100px 60px",background:"rgba(7,7,7,0.88)",borderTop:`1px solid ${G}18`,borderBottom:`1px solid ${G}18`}}>
+              <FadeUp inView={statsIV} delay={0}><p style={{fontFamily:"'Montserrat',sans-serif",fontSize:10,letterSpacing:6,color:G,textAlign:"center",marginBottom:72}}>BY THE NUMBERS</p></FadeUp>
+              <div style={{display:"flex",justifyContent:"center",flexWrap:"wrap",maxWidth:900,margin:"0 auto"}}>
+                {STATS.map((s,i)=>(<div key={s.label} style={{padding:isMobile?"0 0 36px 0":isTablet?"0 32px":"0 56px",width:isMobile?"50%":"auto",textAlign:"center",borderRight:isMobile?"none":(i<STATS.length-1?`1px solid ${G}20`:"none"),opacity:statsIV?1:0,transform:statsIV?"translateY(0)":"translateY(28px)",transition:`opacity 0.8s ease ${i*0.12}s,transform 0.8s cubic-bezier(0.16,1,0.3,1) ${i*0.12}s`}}><StatCard {...s} inView={statsIV}/></div>))}
+              </div>
+            </section>
+
+            {/* OPEN */}
+            <div style={{height:isMobile?"10vh":"35vh"}}/>
+
+            {/* ── 3D SHOWCASE ── */}
+            <section ref={jewelRef} style={{background:"rgba(7,7,7,0.92)",padding:isMobile?"72px 24px 80px":isTablet?"100px 40px":"140px 60px 120px",borderTop:`1px solid ${G}18`,borderBottom:`1px solid ${G}18`,position:"relative",overflow:"hidden"}}>
+              <div style={{position:"absolute",left:-40,top:"50%",transform:"translateY(-50%)",fontFamily:"'Bebas Neue',sans-serif",fontSize:"55vw",color:"rgba(201,168,76,0.025)",lineHeight:1,userSelect:"none",pointerEvents:"none"}}>X</div>
+              <div style={{textAlign:"center",marginBottom:isMobile?48:72,position:"relative",zIndex:1}}>
+                <FadeUp inView={jewelIV} delay={0}><p style={{fontFamily:"'Montserrat',sans-serif",fontSize:10,letterSpacing:6,color:G,marginBottom:16}}>INTERACTIVE 3D</p></FadeUp>
+                <SlideUp inView={jewelIV} delay={0.12}><div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:"clamp(44px,6.5vw,86px)",letterSpacing:isMobile?2:6,lineHeight:0.9,color:"#fff"}}>EXPLORE THE CRAFT</div></SlideUp>
+                <FadeUp inView={jewelIV} delay={0.28}><p style={{fontFamily:"'Cormorant Garamond',serif",fontStyle:"italic",fontSize:"clamp(16px,2vw,20px)",fontWeight:300,color:"rgba(255,255,255,0.4)",marginTop:20}}>Drag to rotate &nbsp;·&nbsp; See every angle &nbsp;·&nbsp; Feel the detail</p></FadeUp>
+              </div>
+              <div style={{maxWidth:720,margin:"0 auto",opacity:jewelIV?1:0,transform:jewelIV?"translateY(0)":"translateY(50px)",transition:"opacity 1.1s ease 0.2s,transform 1.1s cubic-bezier(0.16,1,0.3,1) 0.2s",position:"relative",zIndex:1}}>
+                <div style={{border:`1px solid ${G}30`,borderRadius:"4px",overflow:"hidden",boxShadow:`0 0 80px ${G}12,0 40px 80px rgba(0,0,0,0.6)`,background:"rgba(0,0,0,0.3)"}}>
+                  <Ring3D inView={jewelIV}/>
                 </div>
+                {[{top:0,left:0,borderTop:`1px solid ${G}`,borderLeft:`1px solid ${G}`},{top:0,right:0,borderTop:`1px solid ${G}`,borderRight:`1px solid ${G}`},{bottom:0,left:0,borderBottom:`1px solid ${G}`,borderLeft:`1px solid ${G}`},{bottom:0,right:0,borderBottom:`1px solid ${G}`,borderRight:`1px solid ${G}`}].map((s,i)=>(<div key={i} style={{position:"absolute",width:24,height:24,...s,opacity:jewelIV?1:0,transition:`opacity 0.6s ease ${0.6+i*0.1}s`}}/>))}
               </div>
-            ))}
-          </div>
-        </section>
-
-        {/* OPEN — watch shows again */}
-        <div style={{height:isMobile?"10vh":"35vh"}}/>
-
-        {/* CRAFTSMANSHIP */}
-        <section ref={craftRef} style={{display:"grid",gridTemplateColumns:isMobile?"1fr":"1fr 1fr",minHeight:isMobile?"auto":"80vh",background:"rgba(7,7,7,0.88)",borderTop:`1px solid ${G}14`}}>
-          <div style={{position:"relative",overflow:"hidden",minHeight:isMobile?240:500}}>
-            <div style={{position:"absolute",inset:0,backgroundImage:`url(https://images.unsplash.com/photo-1535632066829-9a41f1a01756?w=1200&q=95&fit=crop)`,backgroundSize:"cover",backgroundPosition:"center",filter:"brightness(0.5) saturate(0.75)",transform:craftInView?"scale(1.0)":"scale(1.1)",transition:"transform 1.4s cubic-bezier(0.16,1,0.3,1)"}}/>
-            <div style={{position:"absolute",inset:0,background:isMobile?"linear-gradient(to bottom,transparent 50%,rgba(7,7,7,0.88) 100%)":"linear-gradient(to right,transparent 55%,rgba(7,7,7,0.88) 100%)"}}/>
-          </div>
-          <div style={{padding:isMobile?"36px 24px 56px":isTablet?"56px 40px":"100px 72px 100px 64px",display:"flex",flexDirection:"column",justifyContent:"center"}}>
-            <FadeUp inView={craftInView} delay={0.1}><p style={{fontFamily:"'Montserrat',sans-serif",fontSize:10,letterSpacing:6,color:G,marginBottom:28}}>OUR CRAFT</p></FadeUp>
-            <SlideUp inView={craftInView} delay={0.2}><div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:"clamp(44px,5.5vw,70px)",letterSpacing:3,lineHeight:0.9,color:"#fff"}}>ENGINEERED WITHOUT</div></SlideUp>
-            <SlideUp inView={craftInView} delay={0.35}><div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:"clamp(44px,5.5vw,70px)",letterSpacing:3,lineHeight:0.9,color:G,marginBottom:8}}>COMPROMISE.</div></SlideUp>
-            <FadeUp inView={craftInView} delay={0.52}><div style={{width:craftInView?56:0,height:1,background:G,margin:"28px 0",transition:"width 1.1s ease 0.72s"}}/></FadeUp>
-            <FadeUp inView={craftInView} delay={0.62}><p style={{fontFamily:"'Cormorant Garamond',serif",fontStyle:"italic",fontSize:19,fontWeight:300,color:"rgba(255,255,255,0.55)",lineHeight:1.72,marginBottom:44}}>Every piece passes through artisan hands three times before it reaches yours. Same materials as the luxury houses — we just don't charge for the logo.</p></FadeUp>
-            <FadeUp inView={craftInView} delay={0.76}><div style={{display:"flex",gap:10,flexWrap:"wrap"}}>{["14K Gold","18K Gold","Moissanite","Lab Diamond","925 Silver"].map(m=><span key={m} className="mat-pill">{m}</span>)}</div></FadeUp>
-          </div>
-        </section>
-
-        {/* OPEN — third watch territory */}
-        <div style={{height:isMobile?"10vh":"35vh"}}/>
-
-        {/* TESTIMONIALS */}
-        <section ref={testiRef} style={{padding:isMobile?"56px 16px":isTablet?"80px 40px":"120px 60px",background:"rgba(7,7,7,0.88)"}}>
-          <div style={{textAlign:"center",marginBottom:80}}>
-            <FadeUp inView={testiInView} delay={0}><p style={{fontFamily:"'Montserrat',sans-serif",fontSize:10,letterSpacing:6,color:G,marginBottom:18}}>WHAT THEY'RE SAYING</p></FadeUp>
-            <SlideUp inView={testiInView} delay={0.12}><div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:"clamp(40px,5.5vw,68px)",letterSpacing:6,color:"#fff"}}>REAL PEOPLE. REAL REACTIONS.</div></SlideUp>
-          </div>
-          <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(280px,1fr))",gap:2}}>
-            {TESTIMONIALS.map((t,i) => (
-              <div key={t.name} className="testi-card" style={{opacity:testiInView?1:0,transform:testiInView?"translateY(0)":"translateY(40px)",transition:`opacity 0.85s ease ${0.12+i*0.14}s,transform 0.85s cubic-bezier(0.16,1,0.3,1) ${0.12+i*0.14}s`}}>
-                <div style={{fontSize:48,color:G,fontFamily:"'Cormorant Garamond',serif",lineHeight:1,marginBottom:20,opacity:0.7}}>"</div>
-                <p style={{fontFamily:"'Cormorant Garamond',serif",fontStyle:"italic",fontSize:18,color:"rgba(255,255,255,0.72)",lineHeight:1.72,marginBottom:32}}>{t.quote}</p>
-                <div style={{width:32,height:1,background:G,marginBottom:20}}/>
-                <p style={{fontFamily:"'Montserrat',sans-serif",fontWeight:400,fontSize:11,letterSpacing:2,color:"#fff"}}>{t.name}</p>
-                <p style={{fontFamily:"'Montserrat',sans-serif",fontWeight:300,fontSize:9,letterSpacing:2,color:"rgba(255,255,255,0.28)",marginTop:5}}>{t.location}</p>
+              <div style={{display:"flex",justifyContent:"center",gap:isMobile?16:48,marginTop:isMobile?36:52,flexWrap:"wrap",opacity:jewelIV?1:0,transition:"opacity 0.9s ease 0.7s",position:"relative",zIndex:1}}>
+                {["14K & 18K Gold","Moissanite Diamond","Hand-Set Pavé"].map(label=>(<div key={label} style={{textAlign:"center"}}><div style={{width:32,height:1,background:G,margin:"0 auto 12px"}}/><p style={{fontFamily:"'Montserrat',sans-serif",fontSize:9,letterSpacing:4,color:"rgba(255,255,255,0.4)",textTransform:"uppercase"}}>{label}</p></div>))}
               </div>
-            ))}
-          </div>
-        </section>
-
-        {/* CTA — transparent, third watch fully visible */}
-        <section ref={ctaRef} style={{height:"85vh",display:"flex",alignItems:"center",justifyContent:"center",position:"relative"}}>
-          <div style={{position:"absolute",inset:0,background:"rgba(7,7,7,0.45)"}}/>
-          {(isMobile?[180,260,340]:[500,700,900]).map((size,ri) => (
-            <div key={size} style={{position:"absolute",top:"50%",left:"50%",transform:"translate(-50%,-50%)",width:ctaInView?size:0,height:ctaInView?size:0,border:`1px solid ${G}${ri===0?"18":ri===1?"0d":"07"}`,borderRadius:"50%",transition:`width ${1.2+ri*0.2}s cubic-bezier(0.16,1,0.3,1) ${ri*0.1}s,height ${1.2+ri*0.2}s cubic-bezier(0.16,1,0.3,1) ${ri*0.1}s`,animation:ri===0?"ringPulse 4s ease infinite":"none"}}/>
-          ))}
-          <div style={{position:"relative",zIndex:2,textAlign:"center",opacity:ctaInView?1:0,transform:ctaInView?"translateY(0)":"translateY(40px)",transition:"opacity 1s ease 0.4s,transform 1s cubic-bezier(0.16,1,0.3,1) 0.4s"}}>
-            <p style={{fontFamily:"'Montserrat',sans-serif",fontSize:10,letterSpacing:6,color:G,marginBottom:24}}>YOUR LEGACY STARTS HERE</p>
-            <h2 style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:"clamp(60px,10vw,112px)",letterSpacing:8,lineHeight:0.88,marginBottom:40}}>
-              <span style={{color:"#fff"}}>WEAR YOUR</span><br/>
-              <span style={{color:G}}>LEGACY.</span>
-            </h2>
-            <p style={{fontFamily:"'Cormorant Garamond',serif",fontStyle:"italic",fontSize:18,color:"rgba(255,255,255,0.5)",marginBottom:48}}>Custom orders available. Financing on orders over $500.</p>
-            <div style={{display:"flex",gap:16,justifyContent:"center",flexWrap:"wrap",marginBottom:32}}>
-              <button className="btn-fill">Shop Now</button>
-              <button className="btn-gold">Book Consultation</button>
-            </div>
-            <p style={{fontFamily:"'Montserrat',sans-serif",fontSize:9,letterSpacing:4,color:"rgba(255,255,255,0.22)"}}>FREE SHIPPING &nbsp;·&nbsp; 30-DAY RETURNS &nbsp;·&nbsp; LIFETIME SIZING</p>
-          </div>
-        </section>
-
-        {/* FOOTER */}
-        <footer style={{background:"rgba(3,3,3,0.97)",padding:isMobile?"48px 20px 28px":isTablet?"56px 40px 32px":"80px 60px 36px",borderTop:`1px solid ${G}14`}}>
-          <div style={{display:"grid",gridTemplateColumns:isMobile?"1fr 1fr":isTablet?"1fr 1fr 1fr":"2fr 1fr 1fr 1fr",gap:isMobile?28:isTablet?36:48,marginBottom:isMobile?36:64}}>
-            <div>
-              <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:44,letterSpacing:12,background:`linear-gradient(135deg,#fff,${GL})`,WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",marginBottom:18}}>LUXX</div>
-              <p style={{fontFamily:"'Cormorant Garamond',serif",fontStyle:"italic",fontSize:15,color:"rgba(255,255,255,0.32)",lineHeight:1.65,maxWidth:240,marginBottom:28}}>Fine jewelry for those who refuse to choose between quality and value.</p>
-              <div style={{display:"flex",gap:10}}>
-                {["IG","TK","PIN"].map(s => (
-                  <a key={s} href="#" style={{fontFamily:"'Montserrat',sans-serif",fontSize:9,letterSpacing:2,color:"rgba(255,255,255,0.3)",border:"1px solid rgba(255,255,255,0.1)",padding:"9px 14px",transition:"all 0.3s"}}
-                    onMouseEnter={e=>{e.currentTarget.style.borderColor=G;e.currentTarget.style.color=G;}}
-                    onMouseLeave={e=>{e.currentTarget.style.borderColor="rgba(255,255,255,0.1)";e.currentTarget.style.color="rgba(255,255,255,0.3)";}}>
-                    {s}
-                  </a>
-                ))}
+              <div style={{textAlign:"center",marginTop:isMobile?40:60,opacity:jewelIV?1:0,transition:"opacity 0.9s ease 0.9s",position:"relative",zIndex:1}}>
+                <button className="btn-fill">Shop Rings</button>&nbsp;&nbsp;
+                <button className="btn-gold">Custom Order</button>
               </div>
-            </div>
-            {[
-              {title:"Shop",   links:["Chains","Watches","Rings","Custom Orders"]},
-              {title:"Company",links:["Our Story","Craftsmanship","Careers","Press"]},
-              {title:"Support",links:["FAQ","Shipping","Returns","Sizing Guide"]},
-            ].map(col => (
-              <div key={col.title}>
-                <p style={{fontFamily:"'Montserrat',sans-serif",fontSize:9,letterSpacing:4,color:G,marginBottom:28,textTransform:"uppercase"}}>{col.title}</p>
-                {col.links.map(l => <a key={l} href="#" className="nav-link" style={{display:"block",marginBottom:16,fontSize:11}}>{l}</a>)}
+            </section>
+
+            {/* OPEN */}
+            <div style={{height:isMobile?"10vh":"35vh"}}/>
+
+            {/* FEATURED */}
+            <section ref={featRef} style={{background:"rgba(7,7,7,0.9)",padding:isMobile?"56px 16px":isTablet?"80px 40px":"120px 60px",borderTop:`1px solid ${G}10`}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-end",marginBottom:72,flexWrap:"wrap",gap:24}}>
+                <div>
+                  <FadeUp inView={featIV} delay={0}><p style={{fontFamily:"'Montserrat',sans-serif",fontSize:10,letterSpacing:6,color:G,marginBottom:16}}>HAND-SELECTED</p></FadeUp>
+                  <SlideUp inView={featIV} delay={0.12}><div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:"clamp(44px,6vw,78px)",letterSpacing:6,color:"#fff"}}>SIGNATURE PIECES</div></SlideUp>
+                </div>
+                <FadeUp inView={featIV} delay={0.3}><button className="btn-gold">View All</button></FadeUp>
               </div>
-            ))}
+              <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(300px,1fr))",gap:3}}>
+                {FEATURED.map((f,i)=>(<div key={f.name} className="feat-wrap" style={{position:"relative",overflow:"hidden",opacity:featIV?1:0,transform:featIV?"translateY(0)":"translateY(60px)",transition:`opacity 0.9s ease ${0.15+i*0.15}s,transform 0.9s cubic-bezier(0.16,1,0.3,1) ${0.15+i*0.15}s`}}><div style={{height:isMobile?280:isTablet?380:480,overflow:"hidden",position:"relative"}}><img src={f.img} alt={f.name} className="feat-img" style={{width:"100%",height:"100%",objectFit:"cover",filter:"brightness(0.65) saturate(0.85)"}}/><div style={{position:"absolute",top:20,right:20,background:G,color:"#000",fontFamily:"'Montserrat',sans-serif",fontWeight:500,fontSize:12,letterSpacing:1,padding:"6px 16px"}}>{f.price}</div></div><div style={{position:"absolute",bottom:0,left:0,right:0,padding:"56px 28px 30px",background:"linear-gradient(to top,rgba(7,7,7,0.97) 0%,transparent 100%)"}}><p style={{fontFamily:"'Montserrat',sans-serif",fontSize:8,letterSpacing:4,color:G,marginBottom:10}}>{f.tag}</p><h3 style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:30,letterSpacing:3,color:"#fff",marginBottom:8}}>{f.name}</h3><p style={{fontFamily:"'Cormorant Garamond',serif",fontStyle:"italic",fontSize:15,color:"rgba(255,255,255,0.48)",marginBottom:24}}>{f.desc}</p><button className="btn-gold" style={{fontSize:9,padding:"10px 24px"}}>Add to Bag</button></div></div>))}
+              </div>
+            </section>
+
+            {/* OPEN */}
+            <div style={{height:isMobile?"10vh":"35vh"}}/>
+
+            {/* CRAFTSMANSHIP */}
+            <section ref={craftRef} style={{display:"grid",gridTemplateColumns:isMobile?"1fr":"1fr 1fr",minHeight:isMobile?"auto":"80vh",background:"rgba(7,7,7,0.88)",borderTop:`1px solid ${G}14`}}>
+              <div style={{position:"relative",overflow:"hidden",minHeight:isMobile?240:500}}>
+                <div style={{position:"absolute",inset:0,backgroundImage:`url(https://images.unsplash.com/photo-1535632066829-9a41f1a01756?w=1200&q=95&fit=crop)`,backgroundSize:"cover",backgroundPosition:"center",filter:"brightness(0.5) saturate(0.75)",transform:craftIV?"scale(1.0)":"scale(1.1)",transition:"transform 1.4s cubic-bezier(0.16,1,0.3,1)"}}/>
+                <div style={{position:"absolute",inset:0,background:isMobile?"linear-gradient(to bottom,transparent 50%,rgba(7,7,7,0.88) 100%)":"linear-gradient(to right,transparent 55%,rgba(7,7,7,0.88) 100%)"}}/>
+              </div>
+              <div style={{padding:isMobile?"36px 24px 56px":isTablet?"56px 40px":"100px 72px 100px 64px",display:"flex",flexDirection:"column",justifyContent:"center"}}>
+                <FadeUp inView={craftIV} delay={0.1}><p style={{fontFamily:"'Montserrat',sans-serif",fontSize:10,letterSpacing:6,color:G,marginBottom:28}}>OUR CRAFT</p></FadeUp>
+                <SlideUp inView={craftIV} delay={0.2}><div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:"clamp(44px,5.5vw,70px)",letterSpacing:3,lineHeight:0.9,color:"#fff"}}>ENGINEERED WITHOUT</div></SlideUp>
+                <SlideUp inView={craftIV} delay={0.35}><div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:"clamp(44px,5.5vw,70px)",letterSpacing:3,lineHeight:0.9,color:G,marginBottom:8}}>COMPROMISE.</div></SlideUp>
+                <FadeUp inView={craftIV} delay={0.52}><div style={{width:craftIV?56:0,height:1,background:G,margin:"28px 0",transition:"width 1.1s ease 0.72s"}}/></FadeUp>
+                <FadeUp inView={craftIV} delay={0.62}><p style={{fontFamily:"'Cormorant Garamond',serif",fontStyle:"italic",fontSize:19,fontWeight:300,color:"rgba(255,255,255,0.55)",lineHeight:1.72,marginBottom:44}}>Every piece passes through artisan hands three times before it reaches yours. Same materials as the luxury houses — we just don't charge for the logo.</p></FadeUp>
+                <FadeUp inView={craftIV} delay={0.76}><div style={{display:"flex",gap:10,flexWrap:"wrap"}}>{["14K Gold","18K Gold","Moissanite","Lab Diamond","925 Silver"].map(m=><span key={m} className="mat-pill">{m}</span>)}</div></FadeUp>
+              </div>
+            </section>
+
+            {/* OPEN */}
+            <div style={{height:isMobile?"10vh":"35vh"}}/>
+
+            {/* TESTIMONIALS */}
+            <section ref={testiRef} style={{padding:isMobile?"56px 16px":isTablet?"80px 40px":"120px 60px",background:"rgba(7,7,7,0.88)"}}>
+              <div style={{textAlign:"center",marginBottom:80}}>
+                <FadeUp inView={testiIV} delay={0}><p style={{fontFamily:"'Montserrat',sans-serif",fontSize:10,letterSpacing:6,color:G,marginBottom:18}}>WHAT THEY'RE SAYING</p></FadeUp>
+                <SlideUp inView={testiIV} delay={0.12}><div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:"clamp(40px,5.5vw,68px)",letterSpacing:6,color:"#fff"}}>REAL PEOPLE. REAL REACTIONS.</div></SlideUp>
+              </div>
+              <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(280px,1fr))",gap:2}}>
+                {TESTIMONIALS.map((t,i)=>(<div key={t.name} className="testi-card" style={{opacity:testiIV?1:0,transform:testiIV?"translateY(0)":"translateY(40px)",transition:`opacity 0.85s ease ${0.12+i*0.14}s,transform 0.85s cubic-bezier(0.16,1,0.3,1) ${0.12+i*0.14}s`}}><div style={{fontSize:48,color:G,fontFamily:"'Cormorant Garamond',serif",lineHeight:1,marginBottom:20,opacity:0.7}}>"</div><p style={{fontFamily:"'Cormorant Garamond',serif",fontStyle:"italic",fontSize:18,color:"rgba(255,255,255,0.72)",lineHeight:1.72,marginBottom:32}}>{t.quote}</p><div style={{width:32,height:1,background:G,marginBottom:20}}/><p style={{fontFamily:"'Montserrat',sans-serif",fontWeight:400,fontSize:11,letterSpacing:2,color:"#fff"}}>{t.name}</p><p style={{fontFamily:"'Montserrat',sans-serif",fontWeight:300,fontSize:9,letterSpacing:2,color:"rgba(255,255,255,0.28)",marginTop:5}}>{t.location}</p></div>))}
+              </div>
+            </section>
+
+            {/* CTA */}
+            <section ref={ctaRef} style={{height:"85vh",display:"flex",alignItems:"center",justifyContent:"center",position:"relative"}}>
+              <div style={{position:"absolute",inset:0,background:"rgba(7,7,7,0.45)"}}/>
+              {(isMobile?[180,260,340]:[500,700,900]).map((size,ri)=>(<div key={size} style={{position:"absolute",top:"50%",left:"50%",transform:"translate(-50%,-50%)",width:ctaIV?size:0,height:ctaIV?size:0,border:`1px solid ${G}${ri===0?"18":ri===1?"0d":"07"}`,borderRadius:"50%",transition:`width ${1.2+ri*0.2}s cubic-bezier(0.16,1,0.3,1) ${ri*0.1}s,height ${1.2+ri*0.2}s cubic-bezier(0.16,1,0.3,1) ${ri*0.1}s`,animation:ri===0?"ringPulse 4s ease infinite":"none"}}/>))}
+              <div style={{position:"relative",zIndex:2,textAlign:"center",opacity:ctaIV?1:0,transform:ctaIV?"translateY(0)":"translateY(40px)",transition:"opacity 1s ease 0.4s,transform 1s cubic-bezier(0.16,1,0.3,1) 0.4s"}}>
+                <p style={{fontFamily:"'Montserrat',sans-serif",fontSize:10,letterSpacing:6,color:G,marginBottom:24}}>YOUR LEGACY STARTS HERE</p>
+                <h2 style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:"clamp(60px,10vw,112px)",letterSpacing:8,lineHeight:0.88,marginBottom:40}}><span style={{color:"#fff"}}>WEAR YOUR</span><br/><span style={{color:G}}>LEGACY.</span></h2>
+                <p style={{fontFamily:"'Cormorant Garamond',serif",fontStyle:"italic",fontSize:18,color:"rgba(255,255,255,0.5)",marginBottom:48}}>Custom orders available. Financing on orders over $500.</p>
+                <div style={{display:"flex",gap:16,justifyContent:"center",flexWrap:"wrap",marginBottom:32}}>
+                  <button className="btn-fill">Shop Now</button>
+                  <button className="btn-gold">Book Consultation</button>
+                </div>
+                <p style={{fontFamily:"'Montserrat',sans-serif",fontSize:9,letterSpacing:4,color:"rgba(255,255,255,0.22)"}}>FREE SHIPPING &nbsp;·&nbsp; 30-DAY RETURNS &nbsp;·&nbsp; LIFETIME SIZING</p>
+              </div>
+            </section>
+
+            {/* FOOTER */}
+            <footer style={{background:"rgba(3,3,3,0.97)",padding:isMobile?"48px 20px 28px":isTablet?"56px 40px 32px":"80px 60px 36px",borderTop:`1px solid ${G}14`}}>
+              <div style={{display:"grid",gridTemplateColumns:isMobile?"1fr 1fr":isTablet?"1fr 1fr 1fr":"2fr 1fr 1fr 1fr",gap:isMobile?28:isTablet?36:48,marginBottom:isMobile?36:64}}>
+                <div>
+                  <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:44,letterSpacing:12,background:`linear-gradient(135deg,#fff,${GL})`,WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",marginBottom:18}}>LUXX</div>
+                  <p style={{fontFamily:"'Cormorant Garamond',serif",fontStyle:"italic",fontSize:15,color:"rgba(255,255,255,0.32)",lineHeight:1.65,maxWidth:240,marginBottom:28}}>Fine jewelry for those who refuse to choose between quality and value.</p>
+                  <div style={{display:"flex",gap:10}}>
+                    {["IG","TK","PIN"].map(s=>(<a key={s} href="#" style={{fontFamily:"'Montserrat',sans-serif",fontSize:9,letterSpacing:2,color:"rgba(255,255,255,0.3)",border:"1px solid rgba(255,255,255,0.1)",padding:"9px 14px",transition:"all 0.3s"}} onMouseEnter={e=>{e.currentTarget.style.borderColor=G;e.currentTarget.style.color=G;}} onMouseLeave={e=>{e.currentTarget.style.borderColor="rgba(255,255,255,0.1)";e.currentTarget.style.color="rgba(255,255,255,0.3)";}}>
+                      {s}
+                    </a>))}
+                  </div>
+                </div>
+                {[{title:"Shop",links:["Chains","Watches","Rings","Custom Orders"]},{title:"Company",links:["Our Story","Craftsmanship","Careers","Press"]},{title:"Support",links:["FAQ","Shipping","Returns","Sizing Guide"]}].map(col=>(<div key={col.title}><p style={{fontFamily:"'Montserrat',sans-serif",fontSize:9,letterSpacing:4,color:G,marginBottom:28,textTransform:"uppercase"}}>{col.title}</p>{col.links.map(l=><a key={l} href="#" className="nav-link" style={{display:"block",marginBottom:16,fontSize:11}}>{l}</a>)}</div>))}
+              </div>
+              <div style={{borderTop:`1px solid ${G}0d`,paddingTop:28,display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:16}}>
+                <p style={{fontFamily:"'Montserrat',sans-serif",fontSize:9,color:"rgba(255,255,255,0.16)",letterSpacing:2}}>© 2024 LUXX FINE JEWELRY. ALL RIGHTS RESERVED.</p>
+                <p style={{fontFamily:"'Montserrat',sans-serif",fontSize:9,color:"rgba(255,255,255,0.16)",letterSpacing:2}}>PRIVACY POLICY &nbsp;·&nbsp; TERMS OF SERVICE</p>
+              </div>
+            </footer>
+
           </div>
-          <div style={{borderTop:`1px solid ${G}0d`,paddingTop:28,display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:16}}>
-            <p style={{fontFamily:"'Montserrat',sans-serif",fontSize:9,color:"rgba(255,255,255,0.16)",letterSpacing:2}}>© 2024 LUXX FINE JEWELRY. ALL RIGHTS RESERVED.</p>
-            <p style={{fontFamily:"'Montserrat',sans-serif",fontSize:9,color:"rgba(255,255,255,0.16)",letterSpacing:2}}>PRIVACY POLICY &nbsp;·&nbsp; TERMS OF SERVICE</p>
-          </div>
-        </footer>
+        </div>
+      );
+    }
 
-      </div>{/* end scrollable content */}
-    </div>
-  );
-}
-
-
-    ReactDOM.createRoot(document.getElementById('root')).render(<Luxx />);
+    ReactDOM.createRoot(document.getElementById('root')).render(<Luxx/>);
   </script>
 </body>
 </html>
