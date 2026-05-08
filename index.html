@@ -69,7 +69,7 @@ function CatRow({cat,i,ready}){
       <div style={{position:"absolute",inset:0,backgroundImage:`url(${cat.img})`,backgroundSize:"cover",backgroundPosition:"center",
         opacity:hov?0.2:0,transition:"opacity 0.8s ease",filter:"brightness(0.8)"}}/>
       <div style={{position:"absolute",left:0,top:0,bottom:0,width:hov?3:0,background:G,transition:"width 0.4s ease"}}/>
-      <div style={{position:"relative",zIndex:1,display:"flex",alignItems:"center",gap:40,padding:"56px 64px",flexWrap:"wrap"}}>
+      <div style={{position:"relative",zIndex:1,display:"flex",alignItems:"center",gap:40,padding:isMobile?"28px 20px":"44px 64px",flexWrap:"wrap"}}>
         <div style={{minWidth:260,maxWidth:400}}>
           <p style={{fontFamily:"'Montserrat',sans-serif",fontSize:9,letterSpacing:5,
             color:hov?G:"rgba(255,255,255,0.2)",marginBottom:14,transition:"color 0.4s ease"}}>{cat.num}</p>
@@ -94,11 +94,11 @@ function Luxx(){
   const bp=useBreak();
   const isMobile=bp==="mobile",isTablet=bp==="tablet";
 
-  const[manRef,manIV]=useInView(0.08);
-  const[catRef,catIV]=useInView(0.04);
-  const[crRef,crIV]=useInView(0.1);
-  const[tRef,tIV]=useInView(0.08);
-  const[ctaRef,ctaIV]=useInView(0.12);
+  const[manRef,manIV]=useInView(0.02);
+  const[catRef,catIV]=useInView(0.01);
+  const[crRef,crIV]=useInView(0.02);
+  const[tRef,tIV]=useInView(0.02);
+  const[ctaRef,ctaIV]=useInView(0.02);
 
   // Lenis
   useEffect(()=>{
@@ -116,13 +116,13 @@ function Luxx(){
     const ST=window.ScrollTrigger;
     g.registerPlugin(ST);
 
-    // Hero entrance timeline
+    // Hero entrance — fromTo() explicitly defines 0→1 so inline opacity:0 doesn't block
     const tl=g.timeline({delay:0.3});
-    tl.from(".h-eyebrow",{y:20,opacity:0,duration:1.2,ease:"power3.out"})
-      .from(".h-line1",{y:100,opacity:0,duration:1.5,ease:"power4.out"},"-=0.9")
-      .from(".h-line2",{y:100,opacity:0,duration:1.5,ease:"power4.out"},"-=1.2")
-      .from(".h-ctas",{y:24,opacity:0,duration:1.0,ease:"power3.out"},"-=0.8")
-      .from(".h-scroll",{opacity:0,duration:0.8},"-=0.5");
+    tl.fromTo(".h-eyebrow",{y:18,opacity:0},{y:0,opacity:1,duration:1.3,ease:"power3.out"})
+      .fromTo(".h-line1",{y:90,opacity:0},{y:0,opacity:1,duration:1.6,ease:"power4.out"},"-=1.0")
+      .fromTo(".h-line2",{y:90,opacity:0},{y:0,opacity:1,duration:1.6,ease:"power4.out"},"-=1.3")
+      .fromTo(".h-ctas",{y:22,opacity:0},{y:0,opacity:1,duration:1.0,ease:"power3.out"},"-=0.9")
+      .fromTo(".h-scroll",{opacity:0},{opacity:1,duration:0.8},"-=0.5");
 
     // Hero parallax — each layer moves at different speed, creates real depth separation
     // Sky/atmosphere: barely moves (slowest)
@@ -178,7 +178,7 @@ function Luxx(){
     </span>);
   };
 
-  const pad=isMobile?"72px 24px":isTablet?"100px 40px":"160px 80px";
+  const pad=isMobile?"56px 24px":isTablet?"80px 40px":"120px 64px";
 
   return(<div style={{fontFamily:"'Cormorant Garamond',Georgia,serif",background:BG,overflowX:"hidden"}}>
     <style>{`
@@ -386,7 +386,7 @@ function Luxx(){
     {/* ══ MANIFESTO — LIGHT SECTION ══════════════════════════ */}
     <section ref={manRef} data-theme="light" style={{
       background:"#f7f4ef",
-      padding:isMobile?"80px 24px 72px":isTablet?"120px 40px 100px":"180px 80px 160px",
+      padding:isMobile?"64px 24px 56px":isTablet?"96px 40px 80px":"140px 80px 120px",
       position:"relative",overflow:"hidden",
     }}>
       {/* Jewelry image — right side accent */}
@@ -440,7 +440,7 @@ function Luxx(){
 
     {/* ══ WHAT WE MAKE ══════════════════════════════════════ */}
     <section ref={catRef} style={{background:"rgba(6,6,6,0.98)"}}>
-      <div style={{padding:isMobile?"64px 24px 40px":isTablet?"88px 40px 56px":"140px 80px 72px",
+      <div style={{padding:isMobile?"48px 24px 32px":isTablet?"72px 40px 44px":"100px 64px 56px",
         borderBottom:"1px solid rgba(255,255,255,0.05)"}}>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-end",flexWrap:"wrap",gap:20}}>
           <div>
@@ -483,7 +483,7 @@ function Luxx(){
             "linear-gradient(to bottom,transparent 45%,rgba(8,8,8,0.92) 100%)":
             "linear-gradient(to right,transparent 45%,rgba(8,8,8,0.92) 100%)"}}/>
       </div>
-      <div style={{padding:isMobile?"40px 24px 64px":isTablet?"64px 40px":"120px 80px 120px 64px",
+      <div style={{padding:isMobile?"36px 24px 52px":isTablet?"56px 40px":"96px 64px 96px 56px",
         display:"flex",flexDirection:"column",justifyContent:"center"}}>
         <div style={{opacity:crIV?1:0,transform:crIV?"translateY(0)":"translateY(14px)",
           transition:"opacity 1s ease,transform 1s cubic-bezier(0.16,1,0.3,1)",marginBottom:28}}>
@@ -521,7 +521,7 @@ function Luxx(){
     {/* ══ TESTIMONIALS — FIND STYLE ═══════════════════════ */}
     <section ref={tRef} style={{
       background:"#f2f0ec",
-      padding:isMobile?"72px 24px 80px":isTablet?"100px 40px 120px":"160px 80px 180px",
+      padding:isMobile?"60px 20px 64px":isTablet?"80px 40px 96px":"120px 80px 140px",
     }}>
       <div style={{maxWidth:1200,margin:"0 auto"}}>
         <div style={{marginBottom:isMobile?48:80}}>
@@ -584,7 +584,7 @@ function Luxx(){
 
     {/* ══ CTA ══════════════════════════════════════════════ */}
     <section ref={ctaRef} style={{
-      minHeight:"88vh",display:"flex",alignItems:"center",justifyContent:"center",
+      minHeight:"82vh",display:"flex",alignItems:"center",justifyContent:"center",
       position:"relative",overflow:"hidden",background:"#050505",
     }}>
       {/* Background image — ring box */}
