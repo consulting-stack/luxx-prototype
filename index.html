@@ -124,19 +124,22 @@ function Luxx(){
       .from(".h-ctas",{y:24,opacity:0,duration:1.0,ease:"power3.out"},"-=0.8")
       .from(".h-scroll",{opacity:0,duration:0.8},"-=0.5");
 
-    // Hero parallax — ScrollTrigger scrub
-    g.to(".hero-watch-wrap",{
-      yPercent:-14,ease:"none",
-      scrollTrigger:{trigger:".hero-section",start:"top top",end:"bottom top",scrub:true}
-    });
-    g.to(".hero-luxx-depth",{
-      yPercent:-38,opacity:0,ease:"none",
-      scrollTrigger:{trigger:".hero-section",start:"top top",end:"65% top",scrub:true}
-    });
-    g.to(".hero-content",{
-      yPercent:-8,ease:"none",
-      scrollTrigger:{trigger:".hero-section",start:"top top",end:"bottom top",scrub:true}
-    });
+    // Hero parallax — each layer moves at different speed, creates real depth separation
+    // Sky/atmosphere: barely moves (slowest)
+    g.to(".hero-sky",{yPercent:-4,ease:"none",
+      scrollTrigger:{trigger:".hero-section",start:"top top",end:"bottom top",scrub:true}});
+    // Watch back copy: slightly slower than main watch
+    g.to(".hero-watch-back",{yPercent:-12,ease:"none",
+      scrollTrigger:{trigger:".hero-section",start:"top top",end:"bottom top",scrub:true}});
+    // Watch subject: medium speed — IT IS THE SCENE
+    g.to(".hero-watch-wrap",{yPercent:-20,ease:"none",
+      scrollTrigger:{trigger:".hero-section",start:"top top",end:"bottom top",scrub:true}});
+    // LUXX logo: faster than watch, fades — like FIND logo separating from house
+    g.to(".hero-luxx-depth",{yPercent:-45,opacity:0,ease:"none",
+      scrollTrigger:{trigger:".hero-section",start:"top top",end:"58% top",scrub:true}});
+    // Headline: slowest — stays visible at top longest
+    g.to(".hero-content",{yPercent:-7,ease:"none",
+      scrollTrigger:{trigger:".hero-section",start:"top top",end:"bottom top",scrub:true}});
 
     // Scrub word reveals
     setTimeout(()=>{
@@ -235,41 +238,99 @@ function Luxx(){
     </nav>
 
     {/* ══ HERO ══════════════════════════════════════════════ */}
-    <section className="hero-section" style={{height:"100vh",position:"relative",overflow:"hidden"}}>
+    <section className="hero-section" style={{height:"100vh",position:"relative",overflow:"hidden",background:"#080808"}}>
 
-      {/* Watch photo — full viewport */}
-      <div className="hero-watch-wrap" style={{position:"absolute",inset:0,willChange:"transform"}}>
-        <img src="https://source.unsplash.com/Ae3OHpJfngc/1920x1280" alt="Rolex Explorer"
-          style={{width:"100%",height:"110%",objectFit:"cover",objectPosition:"center 35%",marginTop:"-5%"}}/>
+      {/* LAYER 1 — dark atmosphere: subtle radial gives the watch a ground */}
+      <div className="hero-sky" style={{
+        position:"absolute",inset:0,zIndex:1,willChange:"transform",
+        background:"radial-gradient(ellipse at 50% 80%, #13131e 0%, #080808 65%)",
+      }}/>
+
+      {/* LAYER 2 — Watch back copy: blurred, scaled down, creates depth composite like FIND's hero_composite */}
+      <div className="hero-watch-back" style={{
+        position:"absolute",
+        bottom:isMobile?"-10%":"-6%",
+        left:"50%",
+        transform:"translateX(-50%) scale(0.88)",
+        transformOrigin:"bottom center",
+        zIndex:2,
+        width:isMobile?"105vw":isTablet?"75vw":"60vw",
+        maxWidth:880,
+        willChange:"transform",
+        pointerEvents:"none",
+        opacity:0.3,
+      }}>
+        <img src="https://source.unsplash.com/Ae3OHpJfngc/1920x1280" alt="" aria-hidden="true"
+          style={{width:"100%",height:"auto",display:"block",
+            mixBlendMode:"screen",
+            filter:"brightness(0.55) blur(22px) saturate(0.7)",
+          }}/>
       </div>
 
-      {/* Graduated overlays */}
-      <div style={{position:"absolute",inset:0,background:"rgba(8,8,8,0.38)",zIndex:1}}/>
-      <div style={{position:"absolute",top:0,left:0,right:0,height:"35%",
-        background:"linear-gradient(to bottom,rgba(8,8,8,0.82),transparent)",zIndex:2}}/>
-      <div style={{position:"absolute",bottom:0,left:0,right:0,height:"32%",
-        background:"linear-gradient(to top,rgba(8,8,8,0.9),transparent)",zIndex:2}}/>
-
-      {/* LUXX depth wordmark — in the scene */}
-      <div className="hero-luxx-depth" style={{
-        position:"absolute",bottom:"10%",left:"50%",
+      {/* LAYER 3 — Watch SUBJECT: centered img, mix-blend-mode screen, black bg vanishes */}
+      {/* This IS the house. The watch floats in the dark scene. */}
+      <div className="hero-watch-wrap" style={{
+        position:"absolute",
+        bottom:isMobile?"-5%":"-2%",
+        left:"50%",
         transform:"translateX(-50%)",
-        zIndex:3,pointerEvents:"none",whiteSpace:"nowrap",
+        zIndex:3,
+        width:isMobile?"105vw":isTablet?"75vw":"60vw",
+        maxWidth:880,
+        willChange:"transform",
+        pointerEvents:"none",
+      }}>
+        <img src="https://source.unsplash.com/Ae3OHpJfngc/1920x1280" alt="Rolex Explorer"
+          style={{width:"100%",height:"auto",display:"block",
+            mixBlendMode:"screen",
+            filter:"brightness(1.12) contrast(1.06) saturate(1.1)",
+          }}/>
+      </div>
+
+      {/* LAYER 4 — LUXX wordmark: lives in scene over the watch, like FIND's logo over the house */}
+      <div className="hero-luxx-depth" style={{
+        position:"absolute",
+        bottom:isMobile?"10%":"13%",
+        left:"50%",
+        transform:"translateX(-50%)",
+        zIndex:4,pointerEvents:"none",whiteSpace:"nowrap",
         fontFamily:"'Bebas Neue',sans-serif",
-        fontSize:"clamp(140px,22vw,320px)",
-        letterSpacing:"0.08em",
+        fontSize:isMobile?"clamp(96px,24vw,180px)":"clamp(110px,17vw,248px)",
+        letterSpacing:"0.1em",
         WebkitTextFillColor:"transparent",
-        WebkitTextStroke:`2px rgba(201,168,76,0.58)`,
+        WebkitTextStroke:"1.5px rgba(201,168,76,0.52)",
         color:"transparent",lineHeight:1,willChange:"transform,opacity",
-        textShadow:"none",
       }}>LUXX</div>
 
-      {/* Hero content — anchored to top */}
+      {/* Fine Jewelry tagline — below LUXX in scene, like "Real Estate" on FIND */}
+      <div style={{
+        position:"absolute",
+        bottom:isMobile?"5%":"7%",
+        left:"50%",
+        transform:"translateX(-50%)",
+        zIndex:4,pointerEvents:"none",whiteSpace:"nowrap",
+        fontFamily:"'Cormorant Garamond',serif",fontStyle:"italic",
+        fontSize:isMobile?"clamp(14px,3.5vw,22px)":"clamp(18px,2.2vw,30px)",
+        letterSpacing:"0.32em",
+        WebkitTextFillColor:"transparent",
+        WebkitTextStroke:"1px rgba(201,168,76,0.38)",
+        color:"transparent",lineHeight:1,
+      }}>Fine Jewelry.</div>
+
+      {/* Top gradient — headline readability */}
+      <div style={{position:"absolute",top:0,left:0,right:0,height:"36%",
+        background:"linear-gradient(to bottom,rgba(8,8,8,0.82),transparent)",zIndex:5,pointerEvents:"none"}}/>
+
+      {/* Bottom gradient — watch dissolves into next section */}
+      <div style={{position:"absolute",bottom:0,left:0,right:0,height:"20%",
+        background:"linear-gradient(to top,#080808,transparent)",zIndex:5,pointerEvents:"none"}}/>
+
+      {/* LAYER 6 — Hero content: headline ABOVE the watch scene */}
       <div className="hero-content" style={{
-        position:"absolute",top:isMobile?"18vh":"15vh",
+        position:"absolute",top:isMobile?"13vh":"11vh",
         left:0,right:0,
-        zIndex:4,textAlign:"center",
-        padding:isMobile?"0 24px":"0 60px",
+        zIndex:6,textAlign:"center",
+        padding:isMobile?"0 20px":"0 60px",
         willChange:"transform",
       }}>
         <p className="h-eyebrow" style={{
