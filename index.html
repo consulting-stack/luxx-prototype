@@ -67,8 +67,10 @@
         key.position.set(6,8,6);key.castShadow=true;scene.add(key);
         const fill=new THREE.PointLight(0xC9A84C,2.5,20);
         fill.position.set(-5,3,4);scene.add(fill);
-        scene.add(Object.assign(new THREE.PointLight(0xffffff,1.5,20),{position:{x:0,y:-4,z:-6}}));
-        scene.add(Object.assign(new THREE.DirectionalLight(0xfff5cc,1.2),{position:{x:0,y:10,z:2}}));
+        const rimLight=new THREE.PointLight(0xffffff,1.5,20);
+        rimLight.position.set(0,-4,-6);scene.add(rimLight);
+        const topLight=new THREE.DirectionalLight(0xfff5cc,1.2);
+        topLight.position.set(0,10,2);scene.add(topLight);
         // Geometry
         const group=new THREE.Group();scene.add(group);
         const goldMat=new THREE.MeshStandardMaterial({color:new THREE.Color(0xC9A84C),metalness:1,roughness:0.08});
