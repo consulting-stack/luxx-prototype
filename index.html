@@ -296,7 +296,7 @@ function Luxx(){
         {/* Equivalent of FIND's house — shows top portion, rises and scales */}
         <div className="hero-watch-wrap" style={{
           position:"absolute",
-          top:"55%",            // starts at bottom half — only face visible
+          top:"-5%",             // image starts above viewport so face shows at ~70%
           left:"50%",
           transform:"translateX(-50%)",
           zIndex:3,
@@ -322,7 +322,7 @@ function Luxx(){
         {/* LAYER 3 — Warm gold glow behind watch face */}
         <div style={{
           position:"absolute",
-          top:"55%",left:"50%",
+          top:"50%",left:"50%",
           transform:"translateX(-50%)",
           width:"50vw",height:"50vh",
           background:"radial-gradient(ellipse at 50% 0%, rgba(201,168,76,0.14) 0%, rgba(201,168,76,0.04) 40%, transparent 70%)",
@@ -334,7 +334,7 @@ function Luxx(){
         {/* Like FIND logo at top=216 while house top=502 */}
         <div className="hero-luxx-depth" style={{
           position:"absolute",
-          top:isMobile?"28%":"24%",   // above where watch starts (55%)
+          top:isMobile?"28%":"22%",   // above where watch face appears (~70%)
           left:"50%",
           transform:"translateX(-50%) translateY(0)",
           zIndex:4,
@@ -353,7 +353,7 @@ function Luxx(){
         {/* "Fine Jewelry" — below LUXX in scene */}
         <div className="hero-fine-jewelry" style={{
           position:"absolute",
-          top:isMobile?"40%":"37%",
+          top:isMobile?"40%":"34%",
           left:"50%",
           transform:"translateX(-50%)",
           zIndex:4,
@@ -393,7 +393,7 @@ function Luxx(){
         {/* content starts top=2px in FIND, sinks to top=144px by 62% scroll */}
         <div className="hero-content" style={{
           position:"absolute",
-          top:"2%",
+          top:"9vh",
           left:0,right:0,
           zIndex:8,
           textAlign:"center",
