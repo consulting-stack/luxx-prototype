@@ -137,26 +137,33 @@ function Luxx(){
       .fromTo(".h-ctas",{y:22,opacity:0},{y:0,opacity:1,duration:1.0,ease:"power3.out"},"-=0.9")
       .fromTo(".h-scroll",{opacity:0},{opacity:1,duration:0.8},"-=0.5");
 
-    // Hero: 200vh scroll journey — each layer at different speed
-    // The bg image parallaxes: moves up as you scroll down = slower than scroll
-    g.to(".hero-bg-layer",{
-      yPercent:-18,ease:"none",
-      scrollTrigger:{trigger:".hero-section",start:"top top",end:"bottom top",scrub:true}
+    // Hero parallax — exact FIND motion ratios (from live JS inspection)
+    // Watch: rises significantly AND scales up (like FIND's house)
+    // FIND: -540px translateY + scale 1.24 over first 62% of hero scroll
+    g.to(".hero-watch-wrap",{
+      y:-680,scale:1.28,
+      ease:"none",transformOrigin:"center top",
+      scrollTrigger:{trigger:".hero-section",start:"top top",end:"bottom top",scrub:1}
     });
-    // LUXX logo: faster, fades out partway through
+    // LUXX logo: barely moves (like FIND logo) — watch rises PAST it
     g.to(".hero-luxx-depth",{
-      yPercent:-55,opacity:0,ease:"none",
-      scrollTrigger:{trigger:".hero-section",start:"top top",end:"60% top",scrub:true}
+      y:-30,opacity:0,ease:"none",
+      scrollTrigger:{trigger:".hero-section",start:"top top",end:"55% top",scrub:1}
     });
-    // "Fine Jewelry" tagline: moves with logo, fades
+    // Fine Jewelry: fades with logo
     g.to(".hero-fine-jewelry",{
-      yPercent:-45,opacity:0,ease:"none",
-      scrollTrigger:{trigger:".hero-section",start:"top top",end:"50% top",scrub:true}
+      y:-20,opacity:0,ease:"none",
+      scrollTrigger:{trigger:".hero-section",start:"top top",end:"45% top",scrub:1}
     });
-    // Headline: barely moves, fades toward end
+    // Headline: SINKS DOWN (like FIND content translateY +144px)
     g.to(".hero-content",{
-      yPercent:-4,opacity:0,ease:"none",
-      scrollTrigger:{trigger:".hero-section",start:"40% top",end:"75% top",scrub:true}
+      y:110,scale:0.92,opacity:0,ease:"none",
+      scrollTrigger:{trigger:".hero-section",start:"top top",end:"65% top",scrub:1}
+    });
+    // Smoke gradient: fades IN as watch exits (simulates FIND's smoke PNG)
+    g.to(".hero-smoke-gradient",{
+      opacity:1,ease:"none",
+      scrollTrigger:{trigger:".hero-section",start:"45% top",end:"85% top",scrub:1}
     });
 
     // Scrub word reveals
@@ -256,84 +263,85 @@ function Luxx(){
     </nav>
 
     {/* ══ HERO ══════════════════════════════════════════════
-         FIND's actual technique:
-         - Section is ~200vh TALL (scroll journey, not fixed viewport)
-         - Inner container is position:sticky, height:100vh
-         - You scroll through 200vh while viewing 100vh
-         - Each layer moves at its own speed = the depth effect
-         - GSAP ScrollTrigger scrubs each layer to scroll position
-         ══════════════════════════════════════════════════════ */}
+         EXACT FIND TECHNIQUE (verified via live JS inspection):
+         - hero_root = 4555px (5x viewport). We use 500vh.
+         - hero_top = sticky, 100vh — stays in view while 500vh scrolls
+         - house/watch: starts at TOP=55% of viewport, height=2x viewport
+         - As you scroll: watch RISES (-540px equiv) + SCALES (1.25x)
+         - Headline SINKS DOWN (+100px) — opposite of what you'd expect
+         - LUXX logo barely moves — watch rises THROUGH it
+         - Smoke gradient rises from below as watch exits
+    ══════════════════════════════════════════════════════ */}
     <section className="hero-section" style={{
-      height:"200vh",
+      height:"500vh",
       position:"relative",
+      background:"#080808",
     }}>
 
-      {/* Sticky inner: sticks to viewport while parent scrolls 200vh */}
+      {/* Sticky inner: 100vh, stays in viewport while 500vh scrolls */}
       <div style={{
         position:"sticky",
         top:0,
         height:"100vh",
         overflow:"hidden",
-        background:"#080808",
       }}>
 
-        {/* LAYER 1 — Gold Rolex as full-scene background */}
-        {/* This IS the scene. Background + subject in one image. */}
-        <div className="hero-bg-layer" style={{
+        {/* LAYER 1 — Dark atmosphere base */}
+        <div style={{
+          position:"absolute",inset:0,zIndex:1,
+          background:"radial-gradient(ellipse at 50% 65%, #1c1408 0%, #080808 70%)",
+        }}/>
+
+        {/* LAYER 2 — Watch: starts at 55% from top, height ~2x viewport */}
+        {/* Equivalent of FIND's house — shows top portion, rises and scales */}
+        <div className="hero-watch-wrap" style={{
           position:"absolute",
-          inset:"-10% 0",  // extra height for parallax travel room
-          zIndex:1,
+          top:"55%",            // starts at bottom half — only face visible
+          left:"50%",
+          transform:"translateX(-50%)",
+          zIndex:3,
+          width:isMobile?"95vw":isTablet?"78vw":"68vw",
           willChange:"transform",
+          pointerEvents:"none",
+          transformOrigin:"center top",  // scale from the top (watch face)
         }}>
           <img
             src={window._IMGS.watches}
-            alt=""
-            aria-hidden="true"
+            alt="Rolex Submariner"
             style={{
               width:"100%",
-              height:"100%",
-              objectFit:"cover",
-              objectPosition:"center 30%",
+              height:"auto",
               display:"block",
+              WebkitMaskImage:"radial-gradient(ellipse 85% 75% at 50% 40%, black 0%, black 45%, rgba(0,0,0,0.5) 65%, transparent 85%)",
+              maskImage:"radial-gradient(ellipse 85% 75% at 50% 40%, black 0%, black 45%, rgba(0,0,0,0.5) 65%, transparent 85%)",
+              filter:"brightness(1.08) contrast(1.06) saturate(1.1)",
             }}
           />
         </div>
 
-        {/* LAYER 2 — Dark overlay: depth, contrast, luxury */}
+        {/* LAYER 3 — Warm gold glow behind watch face */}
         <div style={{
-          position:"absolute",inset:0,zIndex:2,
-          background:"rgba(5,4,2,0.48)",
+          position:"absolute",
+          top:"55%",left:"50%",
+          transform:"translateX(-50%)",
+          width:"50vw",height:"50vh",
+          background:"radial-gradient(ellipse at 50% 0%, rgba(201,168,76,0.14) 0%, rgba(201,168,76,0.04) 40%, transparent 70%)",
+          zIndex:2,pointerEvents:"none",
         }}/>
 
-        {/* LAYER 3 — Vignette: focus attention on center */}
-        <div style={{
-          position:"absolute",inset:0,zIndex:3,
-          background:"radial-gradient(ellipse at center, transparent 35%, rgba(5,4,2,0.72) 100%)",
-        }}/>
-
-        {/* LAYER 4 — Top dark band for headline readability */}
-        <div style={{
-          position:"absolute",top:0,left:0,right:0,height:"40%",zIndex:4,
-          background:"linear-gradient(to bottom, rgba(5,4,2,0.88) 0%, transparent 100%)",
-        }}/>
-
-        {/* LAYER 5 — Bottom dissolve into next section */}
-        <div style={{
-          position:"absolute",bottom:0,left:0,right:0,height:"25%",zIndex:4,
-          background:"linear-gradient(to top, #080808 0%, transparent 100%)",
-        }}/>
-
-        {/* LAYER 6 — LUXX outlined wordmark: lives IN the scene */}
-        {/* Equivalent of the FIND logo — sits in the lower-mid scene */}
+        {/* LAYER 4 — LUXX outlined wordmark */}
+        {/* Starts ABOVE the watch face, watch rises UP through it */}
+        {/* Like FIND logo at top=216 while house top=502 */}
         <div className="hero-luxx-depth" style={{
           position:"absolute",
-          bottom:"14%",left:"50%",
-          transform:"translateX(-50%)",
-          zIndex:5,
+          top:isMobile?"28%":"24%",   // above where watch starts (55%)
+          left:"50%",
+          transform:"translateX(-50%) translateY(0)",
+          zIndex:4,
           pointerEvents:"none",
           whiteSpace:"nowrap",
           fontFamily:"'Bebas Neue',sans-serif",
-          fontSize:isMobile?"clamp(88px,22vw,160px)":"clamp(108px,16vw,220px)",
+          fontSize:isMobile?"clamp(80px,20vw,140px)":"clamp(96px,14vw,200px)",
           letterSpacing:"0.1em",
           WebkitTextFillColor:"transparent",
           WebkitTextStroke:"1.5px rgba(201,168,76,0.52)",
@@ -342,34 +350,55 @@ function Luxx(){
           willChange:"transform,opacity",
         }}>LUXX</div>
 
-        {/* "Fine Jewelry." — below LUXX in scene, like "Real Estate" on FIND */}
+        {/* "Fine Jewelry" — below LUXX in scene */}
         <div className="hero-fine-jewelry" style={{
           position:"absolute",
-          bottom:"7%",left:"50%",
+          top:isMobile?"40%":"37%",
+          left:"50%",
           transform:"translateX(-50%)",
-          zIndex:5,
+          zIndex:4,
           pointerEvents:"none",
           whiteSpace:"nowrap",
           fontFamily:"'Cormorant Garamond',serif",
           fontStyle:"italic",
-          fontSize:isMobile?"clamp(14px,3.5vw,22px)":"clamp(18px,2vw,28px)",
+          fontSize:isMobile?"clamp(12px,3vw,18px)":"clamp(15px,1.8vw,24px)",
           letterSpacing:"0.35em",
           WebkitTextFillColor:"transparent",
-          WebkitTextStroke:"1px rgba(201,168,76,0.38)",
+          WebkitTextStroke:"1px rgba(201,168,76,0.35)",
           color:"transparent",
           lineHeight:1,
           willChange:"transform,opacity",
         }}>Fine Jewelry.</div>
 
-        {/* LAYER 7 — Headline: at top, barely moves — ABOVE the scene */}
+        {/* Top dark band for headline readability */}
+        <div style={{
+          position:"absolute",top:0,left:0,right:0,height:"38%",zIndex:5,
+          background:"linear-gradient(to bottom, rgba(5,4,2,0.88) 0%, transparent 100%)",
+          pointerEvents:"none",
+        }}/>
+
+        {/* Bottom dissolve gradient — simulates smoke transition */}
+        <div className="hero-smoke-gradient" style={{
+          position:"absolute",
+          bottom:"-5%",left:0,right:0,
+          height:"40%",
+          zIndex:6,
+          background:"linear-gradient(to top, #080808 0%, rgba(8,8,8,0.6) 50%, transparent 100%)",
+          willChange:"transform,opacity",
+          pointerEvents:"none",
+          opacity:0,     // starts invisible, fades in as watch exits
+        }}/>
+
+        {/* LAYER 7 — Headline: at very top, sinks DOWN as watch rises */}
+        {/* content starts top=2px in FIND, sinks to top=144px by 62% scroll */}
         <div className="hero-content" style={{
           position:"absolute",
-          top:isMobile?"12vh":"10vh",
+          top:"2%",
           left:0,right:0,
-          zIndex:6,
+          zIndex:8,
           textAlign:"center",
           padding:isMobile?"0 20px":"0 60px",
-          willChange:"transform",
+          willChange:"transform,opacity",
         }}>
           <p className="h-eyebrow" style={{
             fontFamily:"'Montserrat',sans-serif",fontWeight:300,
@@ -380,17 +409,16 @@ function Luxx(){
           <div className="h-line1" style={{opacity:0}}>
             <div style={{
               fontFamily:"'Bebas Neue',sans-serif",
-              fontSize:isMobile?"clamp(48px,12vw,90px)":"clamp(62px,8vw,120px)",
+              fontSize:isMobile?"clamp(46px,11vw,82px)":"clamp(58px,7.5vw,112px)",
               letterSpacing:isMobile?2:4,lineHeight:0.87,
-              color:"#fff",
-              whiteSpace:isMobile?"normal":"nowrap",
+              color:"#fff",whiteSpace:isMobile?"normal":"nowrap",
             }}>MUSEUM QUALITY.</div>
           </div>
 
           <div className="h-line2" style={{opacity:0,marginBottom:isMobile?28:44}}>
             <div style={{
               fontFamily:"'Bebas Neue',sans-serif",
-              fontSize:isMobile?"clamp(48px,12vw,90px)":"clamp(62px,8vw,120px)",
+              fontSize:isMobile?"clamp(46px,11vw,82px)":"clamp(58px,7.5vw,112px)",
               letterSpacing:isMobile?2:4,lineHeight:0.87,
               WebkitTextFillColor:"transparent",
               WebkitTextStroke:`2px ${G}`,
@@ -417,7 +445,7 @@ function Luxx(){
           position:"absolute",bottom:isMobile?14:28,left:"50%",
           transform:"translateX(-50%)",
           display:"flex",flexDirection:"column",alignItems:"center",gap:8,
-          zIndex:6,opacity:0,
+          zIndex:8,opacity:0,
         }}>
           <div style={{width:1,height:38,background:`linear-gradient(to bottom,${G},transparent)`,animation:"floatW 2.8s ease infinite"}}/>
           <span style={{fontFamily:"'Montserrat',sans-serif",fontSize:7,letterSpacing:4,color:"rgba(255,255,255,0.28)"}}>SCROLL</span>
